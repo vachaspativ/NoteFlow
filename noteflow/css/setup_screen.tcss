@@ -1,0 +1,32 @@
+#setup-container {
+    align: center middle;
+    padding: 2;
+    max-width: 80;
+    margin: 1 2;
+}
+
+#setup-header {
+    height: auto;
+    margin-bottom: 2;
+}
+
+#app-title {
+    text-style: bold;
+    width: 1fr;
+}
+
+#meeting-title {
+    border: solid $accent;
+    margin-bottom: 2;
+}
+
+#mode-container {
+    height: auto;
+    align: center middle;
+    margin-bottom: 2;
+}
+
+#start-btn {
+    width: 100%;
+    margin-top: 2;
+}

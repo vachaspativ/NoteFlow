@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "noteflow"
+version = "0.1.0"
+description = "Offline AI meeting note-taker with live transcription, LLM summarization, and email delivery"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+readme = "README.md"
+dependencies = [
+    "faster-whisper>=1.0.0",
+    "sounddevice>=0.4.6",
+    "numpy>=1.24.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "textual>=0.65.0",
+    "click>=8.1.0",
+]
+
+[project.scripts]
+noteflow = "noteflow.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-mock>=3.14.0",
+    "pytest-timeout>=2.3.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["noteflow*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests that require external models (deselect with '-m \"not integration\"')",
+]
+asyncio_mode = "auto"

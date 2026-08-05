@@ -1,0 +1,43 @@
+#recording-container {
+    height: 100%;
+    padding: 1 2;
+}
+
+#recording-header {
+    height: auto;
+    dock: top;
+    margin-bottom: 1;
+}
+
+#badge-mode {
+    background: $accent;
+    color: $text;
+    padding: 0 1;
+    margin-right: 2;
+}
+
+#transcript-log {
+    height: 1fr;
+    border: solid $panel;
+    margin-bottom: 1;
+}
+
+#batch-status {
+    height: 1fr;
+    content-align: center middle;
+}
+
+#recording-footer {
+    height: auto;
+    dock: bottom;
+    padding: 1;
+}
+
+#start-time-label {
+    width: 1fr;
+}
+
+#stop-btn {
+    width: 100%;
+    margin-top: 1;
+}

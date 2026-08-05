@@ -1,0 +1,20 @@
+#processing-container {
+    align: center middle;
+    padding: 2;
+    max-width: 80;
+}
+
+#processing-header {
+    text-style: bold;
+    margin-bottom: 2;
+}
+
+#progress-bar {
+    width: 100%;
+    margin: 2 0;
+}
+
+#progress-status {
+    text-align: center;
+    width: 100%;
+}
