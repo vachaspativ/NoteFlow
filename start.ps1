@@ -5,9 +5,11 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "🎙️  Starting NoteFlow (100% Offline AI Meeting Notetaker)" -ForegroundColor Cyan
+Write-Host " [NoteFlow] Starting 100% Offline AI Meeting Notetaker" -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 

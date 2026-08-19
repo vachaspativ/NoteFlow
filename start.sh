@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================================"
-echo "🎙️  Starting NoteFlow (100% Offline AI Meeting Notetaker)"
+echo " [NoteFlow] Starting 100% Offline AI Meeting Notetaker"
 echo "========================================================"
 echo ""
 

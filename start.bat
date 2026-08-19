@@ -1,8 +1,9 @@
 @echo off
+chcp 65001 > nul
 title NoteFlow - 100%% Offline AI Notetaker
 echo.
 echo ========================================================
-echo  🎙️  Starting NoteFlow (100%% Offline AI Meeting Notetaker)
+echo  [NoteFlow] Starting 100%% Offline AI Meeting Notetaker
 echo ========================================================
 echo.
 
