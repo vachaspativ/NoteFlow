@@ -102,16 +102,28 @@ python scripts/preload_models.py base.en
 
 ### 3. Running NoteFlow
 
-#### Launch Web UI (Default)
-Simply run:
-```bash
-noteflow
-```
-This automatically spins up the local web server at `http://127.0.0.1:5000` and opens your default browser!
+#### One-Click Launch (Recommended)
+After installation, you can launch NoteFlow instantly using the provided start scripts:
 
-#### Launch Terminal TUI
+- **Windows (Double-Click)**: Simply double-click `start.bat` in File Explorer, or run:
+  ```powershell
+  .\start.ps1
+  ```
+- **Linux / macOS**:
+  ```bash
+  ./start.sh
+  ```
+
+#### Launch via CLI
 ```bash
+# Launch Web UI (Default)
+noteflow
+
+# Launch Textual Terminal TUI
 noteflow --tui
+
+# Launch Call Auto-Detection Background Listener
+noteflow --daemon
 ```
 
 ---
