@@ -1,36 +1,53 @@
 # NoteFlow Installer for Windows
-Write-Host '🎙️ NoteFlow Installer' -ForegroundColor Cyan
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host " [NoteFlow] Installer for Windows" -ForegroundColor Cyan
+Write-Host "========================================================" -ForegroundColor Cyan
+Write-Host ""
 
 # Check Python
 $python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) { Write-Host '❌ Python not found' -ForegroundColor Red; exit 1 }
+if (-not $python) {
+    Write-Host "[ERROR] Python not found in PATH." -ForegroundColor Red
+    exit 1
+}
 $version = python --version 2>&1
-Write-Host "✅ $version" -ForegroundColor Green
+Write-Host "[OK] $version" -ForegroundColor Green
 
 # Create venv
-if (-not (Test-Path '.venv')) { python -m venv .venv }
-.venv\Scripts\Activate.ps1
+if (-not (Test-Path '.venv')) {
+    Write-Host "[INFO] Creating virtual environment (.venv)..." -ForegroundColor Cyan
+    python -m venv .venv
+}
 
-# Install
-pip install -e .[dev]
+Write-Host "[INFO] Installing NoteFlow dependencies..." -ForegroundColor Cyan
+.venv\Scripts\python.exe -m pip install -e .[dev]
 
 # Pre-download Whisper STT model weights
-python scripts/preload_models.py base.en
+Write-Host "[INFO] Pre-downloading Whisper STT base model weights..." -ForegroundColor Cyan
+.venv\Scripts\python.exe scripts/preload_models.py base.en
 
 # Check Ollama
 $ollama = Get-Command ollama -ErrorAction SilentlyContinue
 if ($ollama) {
-    Write-Host '✅ Ollama found' -ForegroundColor Green
+    Write-Host "[OK] Ollama found in PATH" -ForegroundColor Green
+    Write-Host "[INFO] Pulling llama3 model..." -ForegroundColor Cyan
     ollama pull llama3
 } else {
-    Write-Host '⚠️ Ollama not found. Install from https://ollama.com' -ForegroundColor Yellow
+    Write-Host "[WARN] Ollama not found in PATH. Install from https://ollama.com to enable AI note synthesis." -ForegroundColor Yellow
 }
 
 # Check config.yaml
 if (-not (Test-Path 'config.yaml')) {
-    Write-Host '⚠️ config.yaml not found. Please ensure it is present in the project root.' -ForegroundColor Yellow
+    Write-Host "[WARN] config.yaml not found in project root." -ForegroundColor Yellow
 } else {
-    Write-Host '📝 config.yaml initialized — please edit with your credentials (Ollama model, SMTP, etc.)' -ForegroundColor Cyan
+    Write-Host "[OK] config.yaml initialized" -ForegroundColor Cyan
 }
 
-Write-Host '✅ Installation complete!' -ForegroundColor Green
+Write-Host ""
+Write-Host "========================================================" -ForegroundColor Green
+Write-Host "[OK] NoteFlow Installation Complete!" -ForegroundColor Green
+Write-Host "Run 'start.bat' or '.\start.ps1' to launch NoteFlow." -ForegroundColor Green
+Write-Host "========================================================" -ForegroundColor Green

@@ -73,14 +73,17 @@ def main():
         ("WASAPI / pycaw", check_pycaw)
     ]
 
-    print("🎙️ NoteFlow Prerequisite Check")
-    print("-" * 50)
+    print("========================================================")
+    print(" [NoteFlow] Prerequisite Check")
+    print("========================================================")
     
     all_passed = True
     for name, func in checks:
         passed, msg = func()
         if passed:
             print(f"[\033[92mPASS\033[0m] {name}: {msg}")
+        elif name == "WASAPI / pycaw":
+            print(f"[\033[93mWARN\033[0m] {name}: {msg}")
         else:
             print(f"[\033[91mFAIL\033[0m] {name}: {msg}")
             all_passed = False
