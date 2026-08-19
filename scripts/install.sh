@@ -20,6 +20,9 @@ source .venv/bin/activate
 # Install
 pip install -e '.[dev]'
 
+# Pre-download Whisper STT model weights
+python3 scripts/preload_models.py base.en
+
 # Check Ollama
 if command -v ollama &> /dev/null; then
     echo -e "\e[32m✅ Ollama found\e[0m"
@@ -28,12 +31,11 @@ else
     echo -e "\e[33m⚠️ Ollama not found. Install from https://ollama.com\e[0m"
 fi
 
-# Copy .env
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        cp .env.example .env
-        echo -e "\e[32m📝 Created .env — please edit with your credentials\e[0m"
-    fi
+# Check config.yaml
+if [ ! -f "config.yaml" ]; then
+    echo -e "\e[33m⚠️ config.yaml not found. Please ensure it is present in the project root.\e[0m"
+else
+    echo -e "\e[36m📝 config.yaml initialized — please edit with your credentials (Ollama model, SMTP, etc.)\e[0m"
 fi
 
 echo -e "\e[32m✅ Installation complete!\e[0m"

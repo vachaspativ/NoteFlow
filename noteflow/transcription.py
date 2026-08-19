@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
 import threading
 from typing import Optional
 import numpy as np
@@ -20,10 +23,12 @@ def _detect_device() -> str:
         pass
     return 'cpu'
 
+from pathlib import Path
+
 class WhisperTranscriber:
     """Whisper Speech-to-Text wrapper using faster-whisper."""
 
-    def __init__(self, model_name: str = 'base.en', device: str = 'auto', vad_threshold: float = 0.5):
+    def __init__(self, model_name: str = 'base.en', device: str = 'auto', vad_threshold: float = 0.5, allow_online: bool = False):
         if not HAS_FASTER_WHISPER:
             raise ImportError("faster-whisper is not installed. Please install it to use WhisperTranscriber.")
             
@@ -35,10 +40,38 @@ class WhisperTranscriber:
             
         compute_type = 'float16' if device == 'cuda' else 'int8'
         
-        self._model = WhisperModel(model_name, device=device, compute_type=compute_type)
+        # Check for in-project models/ directory
+        models_dir = Path("models").resolve()
+        if not models_dir.exists():
+            models_dir.mkdir(parents=True, exist_ok=True)
+            
+        local_model_path = models_dir / model_name
+        target_model = str(local_model_path) if local_model_path.exists() else model_name
+        
+        local_files_only = not allow_online
+        
+        try:
+            self._model = WhisperModel(
+                target_model,
+                device=device,
+                compute_type=compute_type,
+                download_root=str(models_dir),
+                local_files_only=local_files_only
+            )
+        except Exception:
+            # Fall back to remote download if model is not pre-cached locally yet
+            self._model = WhisperModel(
+                target_model,
+                device=device,
+                compute_type=compute_type,
+                download_root=str(models_dir),
+                local_files_only=False
+            )
 
     def transcribe_chunk(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
         """Transcribes a short chunk of audio, keeping context from previous chunks."""
+        if hasattr(audio, "ndim") and isinstance(getattr(audio, "ndim", None), int) and audio.ndim > 1:
+            audio = audio.flatten()
         with self._lock:
             segments, info = self._model.transcribe(
                 audio,
@@ -63,6 +96,8 @@ class WhisperTranscriber:
 
     def transcribe_full(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
         """Transcribes a complete audio recording in batch mode."""
+        if hasattr(audio, "ndim") and isinstance(getattr(audio, "ndim", None), int) and audio.ndim > 1:
+            audio = audio.flatten()
         with self._lock:
             segments, info = self._model.transcribe(
                 audio,

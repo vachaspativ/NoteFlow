@@ -27,6 +27,10 @@ class TranscriptStore:
         with self._lock:
             return " ".join(text for _, text in self._segments)
 
+    def get_full_text(self) -> str:
+        """Alias for get_full_transcript."""
+        return self.get_full_transcript()
+
     def get_timestamped_transcript(self) -> str:
         """Returns segments formatted as '[MM:SS] text' per segment."""
         with self._lock:

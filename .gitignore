@@ -32,6 +32,9 @@ notes/*.md
 !sessions/.gitkeep
 !notes/.gitkeep
 
+# Models directory (downloaded Whisper weights exceed GitHub 100MB limit)
+models/
+
 # Coverage
 htmlcov/
 .coverage

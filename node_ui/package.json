@@ -1,0 +1,17 @@
+{
+  "name": "noteflow-node-ui",
+  "version": "0.2.0",
+  "description": "Node.js proxy & standalone static host for NoteFlow Web UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["noteflow", "meeting-notes", "ai", "whisper", "ollama"],
+  "author": "NoteFlow Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.0"
+  }
+}

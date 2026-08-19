@@ -32,6 +32,22 @@ class SetupScreen(Screen):
                 yield Switch(value=True, id="mode-switch") # True for LIVE, false for BATCH
                 yield Label("LIVE")
             
+            with Horizontal(id="loopback-container"):
+                yield Switch(value=getattr(self.app._settings, "enable_loopback", True), id="loopback-switch")
+                yield Label("Two-Way Audio Loopback")
+
+            with Horizontal(id="daemon-container"):
+                yield Switch(value=getattr(self.app._settings, "auto_call_detection", False), id="daemon-switch")
+                yield Label("Auto-Detect Calls Daemon")
+
+            with Horizontal(id="online-download-container"):
+                yield Switch(value=getattr(self.app._settings, "allow_online_model_download", False), id="online-download-switch")
+                yield Label("Allow Online Model Downloads/Updates")
+
+            with Horizontal(id="email-container"):
+                yield Switch(value=getattr(self.app._settings, "enable_email", True), id="email-switch")
+                yield Label("Enable Automatic Email Dispatch")
+
             yield Static("Mic: default", id="mic-label")
             yield Button("▶ Start Recording", id="start-btn", variant="success")
 
@@ -53,7 +69,15 @@ class SetupScreen(Screen):
         if event.switch.id == "theme-switch":
             self.app.dark = event.value
             self.app._settings.theme = Theme.DARK if event.value else Theme.LIGHT
-            self.app._settings.save_theme()
+            self.app._settings.save_theme(self.app._settings.theme)
+        elif event.switch.id == "loopback-switch":
+            self.app._settings.save_enable_loopback(event.value)
+        elif event.switch.id == "daemon-switch":
+            self.app._settings.save_auto_call_detection(event.value)
+        elif event.switch.id == "online-download-switch":
+            self.app._settings.save_allow_online_model_download(event.value)
+        elif event.switch.id == "email-switch":
+            self.app._settings.save_enable_email(event.value)
 
 class RecordingScreen(Screen):
     def __init__(self, title: str, mode: TranscriptionMode, **kwargs) -> None:

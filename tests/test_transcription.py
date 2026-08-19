@@ -78,14 +78,36 @@ def test_auto_device_selection(mocker):
     # Test CPU fallback
     mocker.patch('noteflow.transcription._detect_device', return_value='cpu')
     WhisperTranscriber(device='auto')
-    mock_model.assert_called_with('base.en', device='cpu', compute_type='int8')
+    assert mock_model.call_args.kwargs['device'] == 'cpu'
+    assert mock_model.call_args.kwargs['compute_type'] == 'int8'
     
     # Test CUDA detection
     mocker.patch('noteflow.transcription._detect_device', return_value='cuda')
     WhisperTranscriber(device='auto')
-    mock_model.assert_called_with('base.en', device='cuda', compute_type='float16')
+    assert mock_model.call_args.kwargs['device'] == 'cuda'
+    assert mock_model.call_args.kwargs['compute_type'] == 'float16'
 
 def test_missing_faster_whisper(mocker):
     mocker.patch('noteflow.transcription.HAS_FASTER_WHISPER', False)
     with pytest.raises(ImportError, match="faster-whisper is not installed"):
         WhisperTranscriber(device='cpu')
+
+def test_transcribe_chunk_handles_2d_array(mocker):
+    mocker.patch('noteflow.transcription.HAS_FASTER_WHISPER', True)
+    mocker.patch('noteflow.transcription.WhisperModel', MockWhisperModel)
+    
+    transcriber = WhisperTranscriber(device='cpu')
+    audio = np.zeros((16000, 1), dtype=np.float32)
+    
+    text = transcriber.transcribe_chunk(audio)
+    assert text == "Hello world"
+
+def test_transcribe_full_handles_2d_array(mocker):
+    mocker.patch('noteflow.transcription.HAS_FASTER_WHISPER', True)
+    mocker.patch('noteflow.transcription.WhisperModel', MockWhisperModel)
+    
+    transcriber = WhisperTranscriber(device='cpu')
+    audio = np.zeros((16000, 1), dtype=np.float32)
+    
+    text = transcriber.transcribe_full(audio)
+    assert text == "Hello world"

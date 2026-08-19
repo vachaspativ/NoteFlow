@@ -51,7 +51,7 @@ class EmailSender:
         """Send the formatted notes and transcript via email."""
         msg = MIMEMultipart("alternative")
         date_str = datetime.now().strftime("%Y-%m-%d")
-        subject = f"{self.subject_prefix} {title} — {date_str}"
+        subject = f"{self.subject_prefix} {title} - {date_str}"
         msg["Subject"] = subject
         msg["From"] = self.email_from
         msg["To"] = self.email_to

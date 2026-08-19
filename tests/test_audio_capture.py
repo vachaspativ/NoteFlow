@@ -8,7 +8,7 @@ def test_start_opens_stream(mocker):
     mock_stream = mocker.MagicMock()
     mock_sd.InputStream.return_value = mock_stream
 
-    cap = AudioCapture()
+    cap = AudioCapture(enable_loopback=False)
     cap.start(batch_mode=False)
 
     mock_sd.InputStream.assert_called_once()
@@ -20,7 +20,7 @@ def test_stop_closes_stream(mocker):
     mock_stream = mocker.MagicMock()
     mock_sd.InputStream.return_value = mock_stream
 
-    cap = AudioCapture()
+    cap = AudioCapture(enable_loopback=False)
     cap.start()
     cap.stop()
 
@@ -28,6 +28,15 @@ def test_stop_closes_stream(mocker):
     mock_stream.close.assert_called_once()
     assert cap._stream is None
     assert cap._stop_event.is_set()
+
+def test_loopback_stream_creation(mocker):
+    mock_sd = mocker.patch('noteflow.audio_capture.sd')
+    mock_stream = mocker.MagicMock()
+    mock_sd.InputStream.return_value = mock_stream
+
+    cap = AudioCapture(enable_loopback=True)
+    cap.start()
+    assert mock_sd.InputStream.call_count >= 1
 
 def test_audio_callback_puts_chunk_on_queue(mocker):
     mocker.patch('noteflow.audio_capture.sd')

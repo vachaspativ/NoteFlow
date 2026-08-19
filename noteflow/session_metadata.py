@@ -12,16 +12,60 @@ def generate_session_id() -> str:
     return uuid.uuid4().hex[:8]
 
 
-@dataclass
+@dataclass(init=False)
 class SessionMetadata:
     """Metadata for a NoteFlow recording session."""
     title: str
     transcription_mode: str
     theme: str
-    session_id: str = field(default_factory=generate_session_id)
-    start_time: datetime = field(default_factory=datetime.now)
-    end_time: datetime | None = None
-    duration_seconds: float = 0.0
+    session_id: str
+    start_time: datetime
+    end_time: datetime | None
+    duration_seconds: float
+
+    def __init__(
+        self,
+        title: str,
+        transcription_mode: str | None = None,
+        theme: Any = None,
+        session_id: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        duration_seconds: float = 0.0,
+        mode: Any = None,
+    ):
+        self.title = title
+        
+        # Handle transcription_mode and mode
+        if transcription_mode is not None:
+            self.transcription_mode = str(transcription_mode)
+        elif mode is not None:
+            self.transcription_mode = mode.value if hasattr(mode, 'value') else str(mode)
+        else:
+            self.transcription_mode = "live"
+            
+        # Handle theme
+        if theme is not None:
+            self.theme = theme.value if hasattr(theme, 'value') else str(theme)
+        else:
+            self.theme = "dark"
+            
+        self.session_id = session_id if session_id is not None else generate_session_id()
+        self.start_time = start_time if start_time is not None else datetime.now()
+        self.end_time = end_time
+        self.duration_seconds = duration_seconds
+
+    @property
+    def mode(self) -> Any:
+        from noteflow.config import TranscriptionMode
+        try:
+            return TranscriptionMode(self.transcription_mode)
+        except ValueError:
+            return self.transcription_mode
+
+    @property
+    def duration(self) -> str:
+        return self.duration_display()
 
     def mark_stopped(self) -> None:
         """Mark the session as stopped, setting end_time and computing duration."""

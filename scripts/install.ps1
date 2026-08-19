@@ -12,7 +12,10 @@ if (-not (Test-Path '.venv')) { python -m venv .venv }
 .venv\Scripts\Activate.ps1
 
 # Install
-pip install -e '.[dev]'
+pip install -e .[dev]
+
+# Pre-download Whisper STT model weights
+python scripts/preload_models.py base.en
 
 # Check Ollama
 $ollama = Get-Command ollama -ErrorAction SilentlyContinue
@@ -23,7 +26,11 @@ if ($ollama) {
     Write-Host '⚠️ Ollama not found. Install from https://ollama.com' -ForegroundColor Yellow
 }
 
-# Copy .env
-if (-not (Test-Path '.env')) { Copy-Item '.env.example' '.env'; Write-Host '📝 Created .env — please edit with your credentials' }
+# Check config.yaml
+if (-not (Test-Path 'config.yaml')) {
+    Write-Host '⚠️ config.yaml not found. Please ensure it is present in the project root.' -ForegroundColor Yellow
+} else {
+    Write-Host '📝 config.yaml initialized — please edit with your credentials (Ollama model, SMTP, etc.)' -ForegroundColor Cyan
+}
 
 Write-Host '✅ Installation complete!' -ForegroundColor Green

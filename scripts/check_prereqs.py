@@ -36,12 +36,12 @@ def check_ollama() -> Tuple[bool, str]:
     except ImportError:
         return False, "httpx not found, cannot test Ollama"
 
-def check_env() -> Tuple[bool, str]:
-    possible_paths = [Path(".env"), Path(__file__).parent.parent / ".env"]
+def check_config_yaml() -> Tuple[bool, str]:
+    possible_paths = [Path("config.yaml"), Path(__file__).parent.parent / "config.yaml"]
     for p in possible_paths:
         if p.exists():
-            return True, f".env file found at {p.resolve()}"
-    return False, ".env file not found"
+            return True, f"config.yaml file found at {p.resolve()}"
+    return False, "config.yaml file not found"
 
 def check_mic() -> Tuple[bool, str]:
     try:
@@ -53,14 +53,24 @@ def check_mic() -> Tuple[bool, str]:
     except Exception as e:
         return False, f"Failed to query microphones - {e}"
 
+def check_pycaw() -> Tuple[bool, str]:
+    if not sys.platform.startswith("win"):
+        return True, "Call auto-detection (pycaw) is Windows-specific (skipped)"
+    try:
+        import pycaw
+        return True, "pycaw audio session listener found"
+    except ImportError:
+        return False, "pycaw not found (install with pip install pycaw for call auto-detection)"
+
 def main():
     checks = [
         ("Python Version", check_python),
         ("sounddevice", check_sounddevice),
         ("faster_whisper", check_faster_whisper),
         ("Ollama", check_ollama),
-        (".env File", check_env),
-        ("Microphone", check_mic)
+        ("config.yaml File", check_config_yaml),
+        ("Microphone", check_mic),
+        ("WASAPI / pycaw", check_pycaw)
     ]
 
     print("🎙️ NoteFlow Prerequisite Check")

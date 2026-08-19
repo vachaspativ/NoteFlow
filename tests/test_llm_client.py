@@ -10,13 +10,30 @@ def client():
     return LLMClient()
 
 def test_check_available_returns_true_when_running(mocker, client):
-    mock_response = mocker.Mock(spec=httpx.Response)
-    mock_response.status_code = 200
+    mock_response_version = mocker.Mock(spec=httpx.Response)
+    mock_response_version.status_code = 200
     
-    mock_get = mocker.patch("httpx.Client.get", return_value=mock_response)
+    mock_response_tags = mocker.Mock(spec=httpx.Response)
+    mock_response_tags.status_code = 200
+    mock_response_tags.json.return_value = {"models": [{"name": "llama3:latest"}]}
+    
+    mock_get = mocker.patch("httpx.Client.get", side_effect=[mock_response_version, mock_response_tags])
     
     assert client.check_available() is True
-    mock_get.assert_called_once_with("http://localhost:11434/api/version")
+    assert mock_get.call_count == 2
+
+def test_check_available_returns_false_when_model_missing(mocker, client):
+    mock_response_version = mocker.Mock(spec=httpx.Response)
+    mock_response_version.status_code = 200
+    
+    mock_response_tags = mocker.Mock(spec=httpx.Response)
+    mock_response_tags.status_code = 200
+    mock_response_tags.json.return_value = {"models": [{"name": "mistral:latest"}]}
+    
+    mock_get = mocker.patch("httpx.Client.get", side_effect=[mock_response_version, mock_response_tags])
+    
+    assert client.check_available() is False
+    assert mock_get.call_count == 2
 
 def test_check_available_returns_false_when_not_running(mocker, client):
     mocker.patch("httpx.Client.get", side_effect=httpx.RequestError("Connection refused"))
@@ -81,3 +98,44 @@ def test_validate_notes_fills_missing_keys(client):
     assert validated["action_items"] == []
     assert validated["highlights"] == []
     assert validated["decisions"] == []
+
+def test_ollama_timeout_raises_descriptive_error(mocker, client):
+    mocker.patch("httpx.Client.post", side_effect=httpx.TimeoutException("Read timed out"))
+    with pytest.raises(OllamaNotAvailableError, match="Ollama request timed out"):
+        client.generate_notes("Transcript")
+
+def test_long_transcript_prompt_truncation(client):
+    long_transcript = "A" * 20000
+    prompt = client._build_prompt(long_transcript, "Title", "Duration")
+    assert "truncated for length" in prompt
+    assert len(prompt) < 20000
+
+def test_generate_notes_retries_on_failure_then_succeeds(mocker):
+    from noteflow.llm_client import LLMClient
+    client = LLMClient(max_retries=1)
+
+    mock_ok_response = mocker.Mock(spec=httpx.Response)
+    mock_ok_response.status_code = 200
+    mock_ok_response.json.return_value = {
+        "response": json.dumps({
+            "summary": "Retried summary",
+            "action_items": [],
+            "highlights": [],
+            "decisions": []
+        })
+    }
+
+    mock_post = mocker.patch(
+        "httpx.Client.post",
+        side_effect=[httpx.TimeoutException("Initial timeout"), mock_ok_response]
+    )
+
+    notes = client.generate_notes("Transcript", "Title", "Duration")
+    assert notes["summary"] == "Retried summary"
+    assert mock_post.call_count == 2
+
+def test_externalized_prompt_template_loaded(client):
+    prompt = client._build_prompt("Sample transcript", "Q3 Review", "15m")
+    assert "Q3 Review" in prompt
+    assert "Sample transcript" in prompt
+    assert "Chief of Staff" in prompt

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteFlow — 100% Offline AI Notetaker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-logo">
+          <img src="/static/logo.png" alt="NoteFlow Logo" class="brand-logo-img">
+          <div class="logo-text">
+            <span class="logo-title">NoteFlow</span>
+            <span class="logo-badge">100% Offline AI Notetaker</span>
+          </div>
+        </div>
+        <div class="system-status-pills" id="system-status-pills">
+          <div class="status-pill" id="pill-whisper" title="Faster-Whisper STT engine">
+            <span class="pill-dot"></span>
+            <span class="pill-label">Whisper</span>
+          </div>
+          <div class="status-pill" id="pill-ollama" title="Ollama local LLM engine">
+            <span class="pill-dot"></span>
+            <span class="pill-label">Ollama</span>
+          </div>
+          <div class="status-pill" id="pill-mic" title="Audio Microphone Device">
+            <span class="pill-dot"></span>
+            <span class="pill-label">Microphone</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button class="icon-btn" id="btn-history" title="Meeting History">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span class="btn-text">History</span>
+        </button>
+        <button class="icon-btn" id="btn-settings" title="Settings & Configuration">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span class="btn-text">Settings</span>
+        </button>
+        <button class="icon-btn theme-toggle" id="btn-theme-toggle" title="Toggle Dark/Light Mode">
+          <span class="theme-icon-dark">🌙</span>
+          <span class="theme-icon-light">☀️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dynamic Content Container -->
+    <main class="app-main">
+      
+      <!-- VIEW 1: SETUP VIEW -->
+      <section class="view active" id="view-setup">
+        <div class="setup-hero">
+          <h1 class="hero-title">100% Offline AI Notetaker</h1>
+          <p class="hero-subtitle">Capture speech in real-time, generate structured executive notes with your local LLM, and dispatch action items.</p>
+        </div>
+
+        <div class="setup-card">
+          <!-- Meeting Title Input -->
+          <div class="form-group">
+            <label for="input-meeting-title" class="form-label">Meeting Title</label>
+            <div class="input-with-icon">
+              <span class="input-icon">📝</span>
+              <input type="text" id="input-meeting-title" class="text-input" placeholder="e.g. Q3 Product Roadmap & Architecture Sync" autofocus>
+            </div>
+          </div>
+
+          <!-- Mode Selector Cards -->
+          <div class="form-group">
+            <label class="form-label">Transcription Mode</label>
+            <div class="mode-grid">
+              <label class="mode-card active" id="card-mode-live">
+                <input type="radio" name="transcription_mode" value="live" checked>
+                <div class="mode-card-header">
+                  <div class="mode-badge live">LIVE STREAMING</div>
+                  <div class="mode-check">✓</div>
+                </div>
+                <h3 class="mode-name">Real-Time Live Mode</h3>
+                <p class="mode-desc">Whisper continuously transcribes speech in 3s chunks. Watch the transcript appear live as you speak.</p>
+              </label>
+
+              <label class="mode-card" id="card-mode-batch">
+                <input type="radio" name="transcription_mode" value="batch">
+                <div class="mode-card-header">
+                  <div class="mode-badge batch">BATCH OFFLINE</div>
+                  <div class="mode-check">✓</div>
+                </div>
+                <h3 class="mode-name">Silent Batch Mode</h3>
+                <p class="mode-desc">Records audio silently in memory. Full single-pass Whisper transcription runs immediately when stopped.</p>
+              </label>
+            </div>
+          </div>
+
+          <!-- Microphone & Hardware Device Selector -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="select-mic" class="form-label">Audio Input Device</label>
+              <div class="select-wrapper">
+                <select id="select-mic" class="select-input">
+                  <option value="">Detecting microphones...</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Active Model Config</label>
+              <div class="model-preview-box">
+                <span class="model-tag" id="preview-whisper-model">Whisper: base.en</span>
+                <span class="model-tag" id="preview-ollama-model">Ollama: llama3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Start Session Button -->
+          <div class="setup-actions">
+            <button class="btn btn-primary btn-large btn-glow" id="btn-start-session">
+              <span class="btn-icon">▶</span>
+              <span class="btn-label">Start Meeting Recording</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: RECORDING HUD VIEW -->
+      <section class="view" id="view-recording">
+        <div class="recording-hud">
+          <div class="hud-top">
+            <div class="hud-left">
+              <div class="recording-indicator">
+                <span class="pulse-dot"></span>
+                <span class="recording-state-label" id="hud-recording-state">RECORDING</span>
+              </div>
+              <div class="hud-meeting-info">
+                <h2 class="hud-title" id="hud-title">Meeting Title</h2>
+                <span class="hud-mode-pill" id="hud-mode-pill">LIVE MODE</span>
+              </div>
+            </div>
+            <div class="hud-right">
+              <div class="timer-display">
+                <span class="timer-label">SESSION DURATION</span>
+                <span class="timer-value" id="hud-timer">00:00:00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Audio Visualizer -->
+          <div class="visualizer-container">
+            <canvas id="waveform-canvas" width="800" height="60"></canvas>
+          </div>
+
+          <!-- Live Mode Transcript Container -->
+          <div class="transcript-feed-card" id="feed-live-container">
+            <div class="card-header">
+              <div class="header-title">
+                <span class="card-icon">💬</span>
+                <h3>Live Speech Feed</h3>
+                <span class="segment-counter" id="hud-segment-counter">0 segments</span>
+              </div>
+              <div class="feed-controls">
+                <label class="toggle-control" title="Keep scrolling to newest text">
+                  <input type="checkbox" id="check-auto-scroll" checked>
+                  <span class="toggle-label">Auto-scroll</span>
+                </label>
+              </div>
+            </div>
+            <div class="transcript-stream" id="transcript-stream">
+              <div class="transcript-placeholder" id="transcript-placeholder">
+                <div class="audio-wave-anim">
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <p>Listening for speech... Transcribed segments will stream in real-time.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Batch Mode Status Card (Hidden by default) -->
+          <div class="batch-status-card hidden" id="feed-batch-container">
+            <div class="batch-animation-box">
+              <div class="radar-pulse"></div>
+              <div class="batch-mic-icon">🎙️</div>
+            </div>
+            <h3>Recording in Batch Mode</h3>
+            <p>Audio is being buffered silently in high-fidelity memory. Full Whisper transcription will execute automatically when you stop.</p>
+            <div class="batch-stats-grid">
+              <div class="batch-stat-item">
+                <span class="stat-label">Audio Chunks</span>
+                <span class="stat-val" id="batch-stat-chunks">0</span>
+              </div>
+              <div class="batch-stat-item">
+                <span class="stat-label">Buffer Size</span>
+                <span class="stat-val" id="batch-stat-size">~0.0 MB</span>
+              </div>
+              <div class="batch-stat-item">
+                <span class="stat-label">Sampling</span>
+                <span class="stat-val">16 kHz Mono</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recording Control Bar -->
+          <div class="recording-bottom-bar">
+            <button class="btn btn-danger btn-large" id="btn-stop-session">
+              <span class="btn-icon">⏹</span>
+              <span class="btn-label">Stop & Synthesize Notes</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: PROCESSING PIPELINE VIEW -->
+      <section class="view" id="view-processing">
+        <div class="processing-card">
+          <div class="processing-header">
+            <div class="processing-spinner"></div>
+            <h2>Synthesizing Meeting Notes</h2>
+            <p id="processing-subtitle">Running local offline models...</p>
+          </div>
+
+          <div class="pipeline-stepper">
+            <div class="step-item" id="step-1">
+              <div class="step-circle">1</div>
+              <div class="step-content">
+                <span class="step-title">Finalize Audio</span>
+                <span class="step-desc">Drain buffer and finalize stream</span>
+              </div>
+            </div>
+            <div class="step-item" id="step-2">
+              <div class="step-circle">2</div>
+              <div class="step-content">
+                <span class="step-title">Whisper STT</span>
+                <span class="step-desc">Transcription & segment alignment</span>
+              </div>
+            </div>
+            <div class="step-item" id="step-3">
+              <div class="step-circle">3</div>
+              <div class="step-content">
+                <span class="step-title">Ollama AI Synthesis</span>
+                <span class="step-desc">Extract summary, action items & decisions</span>
+              </div>
+            </div>
+            <div class="step-item" id="step-4">
+              <div class="step-circle">4</div>
+              <div class="step-content">
+                <span class="step-title">Email & Archival</span>
+                <span class="step-desc">Dispatch SMTP report and write JSON/MD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="processing-bar-fill" style="width: 10%;"></div>
+          </div>
+
+          <div class="processing-log-box" id="processing-log">
+            <div class="log-line">Initializing pipeline...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: MEETING NOTES & RESULTS HUB -->
+      <section class="view" id="view-results">
+        <div class="results-layout">
+          <!-- Top Results Bar -->
+          <div class="results-header-bar">
+            <div class="results-header-info">
+              <div class="results-date-badge" id="res-date">TODAY</div>
+              <h1 class="results-title" id="res-title">Meeting Title</h1>
+              <div class="results-meta-row">
+                <span class="meta-tag">⏱️ <span id="res-duration">0s</span></span>
+                <span class="meta-tag">🎙️ <span id="res-mode">Live</span></span>
+                <span class="meta-tag" id="res-email-tag">✉️ Sent via Email</span>
+              </div>
+            </div>
+            <div class="results-actions">
+              <button class="btn btn-secondary" id="btn-copy-notes" title="Copy full markdown notes">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>Copy Notes</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-regenerate-notes" title="Re-run Ollama note generation from transcript">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                <span>Regenerate Notes</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-download-md" title="Download Markdown document">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Export MD</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-resend-email" title="Resend email report">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                <span>Send Email</span>
+              </button>
+              <button class="btn btn-primary" id="btn-new-meeting">
+                <span>+ New Meeting</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Notes Grid -->
+          <div class="notes-grid">
+            <!-- Executive Summary -->
+            <div class="note-card summary-card">
+              <div class="card-header">
+                <div class="header-title">
+                  <span class="card-icon">📋</span>
+                  <h3>Executive Summary</h3>
+                </div>
+              </div>
+              <div class="card-body">
+                <p class="summary-text" id="res-summary">No summary generated.</p>
+              </div>
+            </div>
+
+            <!-- Action Items -->
+            <div class="note-card actions-card">
+              <div class="card-header">
+                <div class="header-title">
+                  <span class="card-icon">✅</span>
+                  <h3>Action Items</h3>
+                  <span class="badge-count" id="res-actions-count">0</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="actions-list" id="res-actions-list">
+                  <p class="empty-state-text">No action items identified.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Key Highlights -->
+            <div class="note-card highlights-card">
+              <div class="card-header">
+                <div class="header-title">
+                  <span class="card-icon">💡</span>
+                  <h3>Key Highlights</h3>
+                </div>
+              </div>
+              <div class="card-body">
+                <ul class="highlights-list" id="res-highlights-list">
+                  <li class="empty-state-text">No key highlights recorded.</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Decisions Made -->
+            <div class="note-card decisions-card">
+              <div class="card-header">
+                <div class="header-title">
+                  <span class="card-icon">🎯</span>
+                  <h3>Decisions Made</h3>
+                </div>
+              </div>
+              <div class="card-body">
+                <ul class="decisions-list" id="res-decisions-list">
+                  <li class="empty-state-text">No decisions recorded.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expandable Full Transcript Accordion -->
+          <div class="transcript-accordion">
+            <button class="accordion-header" id="btn-toggle-transcript">
+              <div class="accordion-title">
+                <span>🎙️ Full Timestamped Transcript</span>
+              </div>
+              <span class="accordion-arrow">▼</span>
+            </button>
+            <div class="accordion-body hidden" id="res-transcript-body">
+              <div class="transcript-actions-bar">
+                <button class="btn btn-small btn-secondary" id="btn-copy-raw-transcript">Copy Transcript</button>
+                <button class="btn btn-small btn-secondary" id="btn-download-transcript">Export Transcript (.txt)</button>
+              </div>
+              <pre class="transcript-pre" id="res-transcript-text">No transcript available.</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Slide-Over Drawer: History Manager -->
+  <div class="drawer-overlay hidden" id="drawer-overlay"></div>
+  <aside class="drawer hidden" id="history-drawer">
+    <div class="drawer-header">
+      <h2>Past Meeting Sessions</h2>
+      <button class="icon-btn" id="btn-close-drawer">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="history-list" id="history-sessions-list">
+        <div class="empty-history">Loading past meetings...</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Settings Modal Dialog -->
+  <div class="modal-overlay hidden" id="modal-settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>NoteFlow Configuration</h2>
+        <button class="icon-btn" id="btn-close-settings">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-settings">
+          <h4 class="form-section-title">Transcription & Voice</h4>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="cfg-whisper-model" class="form-label">Whisper Model</label>
+              <select id="cfg-whisper-model" class="select-input">
+                <option value="tiny.en">tiny.en (Fastest, ~75MB)</option>
+                <option value="base.en">base.en (Balanced, ~140MB)</option>
+                <option value="small.en">small.en (High accuracy, ~460MB)</option>
+                <option value="medium.en">medium.en (High-end, ~1.5GB)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label for="cfg-whisper-device" class="form-label">Compute Device</label>
+              <select id="cfg-whisper-device" class="select-input">
+                <option value="cpu">CPU (int8 quantization)</option>
+                <option value="cuda">CUDA GPU (float16)</option>
+                <option value="auto">Auto Detect</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top: 8px;">
+            <div class="form-group flex-1">
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                <input type="checkbox" id="cfg-allow-online-model-download">
+                <span>Allow Online Model Downloads & Updates (Check Hugging Face Hub)</span>
+              </label>
+            </div>
+          </div>
+
+          <h4 class="form-section-title">Audio Capture & Automation</h4>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="cfg-title-prefix" class="form-label">Default Meeting Title Prefix</label>
+              <input type="text" id="cfg-title-prefix" class="text-input" placeholder="[NoteFlow] Meeting">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                <input type="checkbox" id="cfg-enable-loopback" checked>
+                <span>Two-Way WASAPI Audio Loopback (Record Microphone + Speaker/Headset Caller)</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                <input type="checkbox" id="cfg-auto-call-detection">
+                <span>Auto-Detect Calls Daemon (Listen for Teams/Zoom/Webex Calls)</span>
+              </label>
+            </div>
+          </div>
+
+          <h4 class="form-section-title">Local LLM (Ollama)</h4>
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="cfg-ollama-host" class="form-label">Host URL</label>
+              <input type="text" id="cfg-ollama-host" class="text-input" placeholder="http://localhost">
+            </div>
+            <div class="form-group flex-1">
+              <label for="cfg-ollama-port" class="form-label">Port</label>
+              <input type="number" id="cfg-ollama-port" class="text-input" placeholder="11434">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="cfg-ollama-model" class="form-label">Ollama Model</label>
+              <input type="text" id="cfg-ollama-model" class="text-input" placeholder="llama3, mistral, or phi3">
+            </div>
+            <div class="form-group flex-1">
+              <label for="cfg-ollama-timeout" class="form-label">Timeout (sec)</label>
+              <input type="number" id="cfg-ollama-timeout" class="text-input" placeholder="300" min="30">
+            </div>
+            <div class="form-group flex-1">
+              <label for="cfg-ollama-retries" class="form-label">Max Retries</label>
+              <input type="number" id="cfg-ollama-retries" class="text-input" placeholder="1" min="0" max="5">
+            </div>
+          </div>
+
+          <h4 class="form-section-title">SMTP Email Dispatch</h4>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                <input type="checkbox" id="cfg-enable-email" checked>
+                <span>Enable Automatic Email Dispatch via SMTP</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="cfg-smtp-host" class="form-label">SMTP Host</label>
+              <input type="text" id="cfg-smtp-host" class="text-input" placeholder="smtp.gmail.com">
+            </div>
+            <div class="form-group flex-1">
+              <label for="cfg-smtp-port" class="form-label">Port</label>
+              <input type="number" id="cfg-smtp-port" class="text-input" placeholder="587">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="cfg-smtp-user" class="form-label">Username / Email</label>
+              <input type="text" id="cfg-smtp-user" class="text-input" placeholder="you@gmail.com">
+            </div>
+            <div class="form-group flex-1">
+              <label for="cfg-email-to" class="form-label">Default Recipient</label>
+              <input type="email" id="cfg-email-to" class="text-input" placeholder="recipient@example.com">
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-settings">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
