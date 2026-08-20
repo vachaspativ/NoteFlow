@@ -43,6 +43,8 @@
       micSelect: document.getElementById('select-mic'),
       whisperPreview: document.getElementById('preview-whisper-model'),
       ollamaPreview: document.getElementById('preview-ollama-model'),
+      autoCallBadge: document.getElementById('badge-autocall-status'),
+      autoCallLabel: document.getElementById('label-autocall'),
       startBtn: document.getElementById('btn-start-session'),
     },
     recording: {
@@ -235,6 +237,19 @@
     }
   }
 
+  function updateAutoCallBadge(enabled, running) {
+    if (!els.setup.autoCallBadge || !els.setup.autoCallLabel) return;
+    if (enabled) {
+      els.setup.autoCallBadge.classList.remove('inactive');
+      els.setup.autoCallBadge.classList.add('active');
+      els.setup.autoCallLabel.innerText = running ? '🤖 Auto Call Listener: ACTIVE' : '🤖 Auto Call Listener: ON';
+    } else {
+      els.setup.autoCallBadge.classList.remove('active');
+      els.setup.autoCallBadge.classList.add('inactive');
+      els.setup.autoCallLabel.innerText = 'Auto Call Listener: OFF';
+    }
+  }
+
   // --- API & Status ---
   async function loadSettings() {
     try {
@@ -245,6 +260,8 @@
         setMode(state.settings.transcription_mode || 'live');
         els.setup.whisperPreview.innerText = `Whisper: ${state.settings.whisper_model}`;
         els.setup.ollamaPreview.innerText = `Ollama: ${state.settings.ollama_model}`;
+
+        updateAutoCallBadge(state.settings.auto_call_detection, true);
 
         // Populate settings modal
         els.settingsModal.whisperModel.value = state.settings.whisper_model;
@@ -277,6 +294,8 @@
         updateStatusPill(els.statusPills.whisper, data.components.whisper);
         updateStatusPill(els.statusPills.ollama, data.components.ollama);
         updateStatusPill(els.statusPills.mic, data.components.microphone);
+
+        updateAutoCallBadge(data.auto_call_detection, data.daemon_running);
 
         if (data.is_recording && data.active_session) {
           resumeActiveSession(data.active_session);

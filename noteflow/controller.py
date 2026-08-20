@@ -53,10 +53,30 @@ class SessionController:
         self._segment_callbacks: list[Callable[[dict[str, Any]], None]] = []
         self._last_processed_notes: dict[str, Any] = {}
 
+        try:
+            from noteflow.daemon import CallDetectorDaemon
+            self._call_daemon = CallDetectorDaemon(self)
+        except Exception as e:
+            logger.warning(f"Could not initialize CallDetectorDaemon: {e}")
+            self._call_daemon = None
+
+    def sync_daemon_state(self) -> None:
+        """Starts or stops the call detection daemon based on configuration."""
+        if not self._call_daemon:
+            return
+        if getattr(self.settings, 'auto_call_detection', False):
+            if not self._call_daemon.is_running():
+                self._call_daemon.start()
+        else:
+            if self._call_daemon.is_running():
+                self._call_daemon.stop()
+
     def initialize(self) -> dict[str, bool]:
         """Initializes components and returns status dict."""
         status = {'whisper': False, 'ollama': False, 'microphone': False, 'smtp': False}
         
+        self.sync_daemon_state()
+
         try:
             device_id = getattr(self.settings, 'device_id', None)
             self._audio_capture = AudioCapture(device_id=device_id)

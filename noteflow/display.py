@@ -74,6 +74,7 @@ class SetupScreen(Screen):
             self.app._settings.save_enable_loopback(event.value)
         elif event.switch.id == "daemon-switch":
             self.app._settings.save_auto_call_detection(event.value)
+            self.app._controller.sync_daemon_state()
         elif event.switch.id == "online-download-switch":
             self.app._settings.save_allow_online_model_download(event.value)
         elif event.switch.id == "email-switch":

@@ -125,6 +125,8 @@ def create_app(controller: SessionController) -> FastAPI:
             "status": "online",
             "components": component_status,
             "is_recording": controller.is_recording(),
+            "auto_call_detection": getattr(controller.settings, "auto_call_detection", False),
+            "daemon_running": controller._call_daemon.is_running() if getattr(controller, "_call_daemon", None) else False,
             "active_session": controller.get_current_session_info(),
         }
 
@@ -147,6 +149,9 @@ def create_app(controller: SessionController) -> FastAPI:
             "whisper_device": s.whisper_device,
             "allow_online_model_download": getattr(s, "allow_online_model_download", False),
             "enable_email": getattr(s, "enable_email", True),
+            "enable_loopback": getattr(s, "enable_loopback", True),
+            "auto_call_detection": getattr(s, "auto_call_detection", False),
+            "default_meeting_title_prefix": getattr(s, "default_meeting_title_prefix", "[NoteFlow] Meeting"),
             "chunk_duration_secs": s.chunk_duration_secs,
             "vad_threshold": s.vad_threshold,
             "ollama_host": s.ollama_host,
@@ -184,6 +189,12 @@ def create_app(controller: SessionController) -> FastAPI:
             s.save_allow_online_model_download(req.allow_online_model_download)
         if req.enable_email is not None:
             s.save_enable_email(req.enable_email)
+        if req.enable_loopback is not None:
+            s.save_enable_loopback(req.enable_loopback)
+        if req.auto_call_detection is not None:
+            s.save_auto_call_detection(req.auto_call_detection)
+        if req.default_meeting_title_prefix:
+            s.default_meeting_title_prefix = req.default_meeting_title_prefix
         if req.ollama_host:
             s.ollama_host = req.ollama_host
         if req.ollama_port:
@@ -205,6 +216,7 @@ def create_app(controller: SessionController) -> FastAPI:
         if req.smtp_password:
             s.smtp_password = req.smtp_password
 
+        controller.sync_daemon_state()
         return {"success": True, "settings": get_settings()}
 
     @app.post("/api/session/start")

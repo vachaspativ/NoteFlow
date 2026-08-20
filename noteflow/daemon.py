@@ -8,9 +8,8 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-TARGET_COMMUNICATION_APPS = [
-    "teams.exe", "ms-teams.exe", "zoom.exe",
-    "webex.exe", "skype.exe", "slack.exe"
+TARGET_COMMUNICATION_KEYWORDS = [
+    "teams", "ms-teams", "msteams", "zoom", "webex", "skype", "slack", "chime", "discord"
 ]
 
 class CallDetectorDaemon:
@@ -23,34 +22,59 @@ class CallDetectorDaemon:
         self._stop_event: threading.Event = threading.Event()
         self.is_in_call: bool = False
 
-    def start() -> None:
+    def start(self) -> None:
+        if self._thread and self._thread.is_alive():
+            return
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
         logger.info("CallDetectorDaemon background thread started.")
 
-    def stop() -> None:
+    def stop(self) -> None:
         self._stop_event.set()
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
         logger.info("CallDetectorDaemon background thread stopped.")
 
-    def _check_active_call() -> bool:
+    def is_running(self) -> bool:
+        return self._thread is not None and self._thread.is_alive() and not self._stop_event.is_set()
+
+    def _check_active_call(self) -> bool:
         if not sys.platform.startswith("win"):
             return False
 
+        # Layer 1: Check Windows Audio Sessions (pycaw)
         try:
             from pycaw.pycaw import AudioUtilities
             sessions = AudioUtilities.GetAllSessions()
             for session in sessions:
                 if session.Process:
                     proc_name = session.Process.name().lower()
-                    if proc_name in TARGET_COMMUNICATION_APPS:
+                    if any(kw in proc_name for kw in TARGET_COMMUNICATION_KEYWORDS):
                         # AudioSessionStateActive == 1
                         if hasattr(session, "State") and session.State == 1:
                             return True
         except Exception as e:
             logger.debug(f"Error querying WASAPI audio sessions: {e}")
+
+        # Layer 2: Window title inspection for active call / meeting windows
+        try:
+            import win32gui
+            found_call_window = False
+
+            def _enum_window_callback(hwnd, extra):
+                nonlocal found_call_window
+                if win32gui.IsWindowVisible(hwnd):
+                    title = win32gui.GetWindowText(hwnd).lower()
+                    if title:
+                        if any(kw in title for kw in ["meeting", "call with", "in a call", "teams meeting", "zoom meeting", "webex meeting"]):
+                            found_call_window = True
+
+            win32gui.EnumWindows(_enum_window_callback, None)
+            if found_call_window:
+                return True
+        except Exception as e:
+            logger.debug(f"Error checking window titles: {e}")
 
         return False
 
