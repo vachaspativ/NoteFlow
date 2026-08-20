@@ -21,6 +21,9 @@ class CallDetectorDaemon:
         self._thread: threading.Thread | None = None
         self._stop_event: threading.Event = threading.Event()
         self.is_in_call: bool = False
+        self._active_streak: int = 0
+        self._silence_streak: int = 0
+        self._last_cooldown_until: float = 0.0
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -43,9 +46,9 @@ class CallDetectorDaemon:
         if not sys.platform.startswith("win"):
             return False
 
-        # Layer 1: Check Windows Audio Sessions (pycaw)
+        # Layer 1: WASAPI Audio Peak Meter check via pycaw
         try:
-            from pycaw.pycaw import AudioUtilities
+            from pycaw.pycaw import AudioUtilities, IAudioMeterInformation
             sessions = AudioUtilities.GetAllSessions()
             for session in sessions:
                 if session.Process:
@@ -53,11 +56,17 @@ class CallDetectorDaemon:
                     if any(kw in proc_name for kw in TARGET_COMMUNICATION_KEYWORDS):
                         # AudioSessionStateActive == 1
                         if hasattr(session, "State") and session.State == 1:
-                            return True
+                            try:
+                                meter = session._ctl.QueryInterface(IAudioMeterInformation)
+                                peak = meter.GetPeakValue()
+                                if peak > 0.002: # Active audio volume present
+                                    return True
+                            except Exception:
+                                pass
         except Exception as e:
             logger.debug(f"Error querying WASAPI audio sessions: {e}")
 
-        # Layer 2: Window title inspection for active call / meeting windows
+        # Layer 2: Explicit meeting/call window title check (ignoring idle app windows)
         try:
             import win32gui
             found_call_window = False
@@ -65,9 +74,11 @@ class CallDetectorDaemon:
             def _enum_window_callback(hwnd, extra):
                 nonlocal found_call_window
                 if win32gui.IsWindowVisible(hwnd):
-                    title = win32gui.GetWindowText(hwnd).lower()
+                    title = win32gui.GetWindowText(hwnd).lower().strip()
                     if title:
-                        if any(kw in title for kw in ["meeting", "call with", "in a call", "teams meeting", "zoom meeting", "webex meeting"]):
+                        if title in ["microsoft teams", "teams", "slack", "zoom", "skype", "discord"]:
+                            return
+                        if any(kw in title for kw in ["meeting |", "| microsoft teams", "call with", "in a call", "teams meeting", "zoom meeting", "webex meeting"]):
                             found_call_window = True
 
             win32gui.EnumWindows(_enum_window_callback, None)
@@ -81,28 +92,45 @@ class CallDetectorDaemon:
     def _monitor_loop(self) -> None:
         while not self._stop_event.is_set():
             try:
+                now = time.time()
                 active = self._check_active_call()
-                if active and not self.is_in_call:
-                    prefix = getattr(self.controller.settings, "default_meeting_title_prefix", "[NoteFlow] Meeting")
-                    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    auto_title = f"{prefix} {now_str}"
-                    
-                    logger.info(f"Auto-detected active call! Auto-starting session '{auto_title}'...")
-                    self.is_in_call = True
-                    try:
-                        self.controller.start_session(
-                            title=auto_title,
-                            mode=self.controller.settings.transcription_mode,
-                            theme=self.controller.settings.theme
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to auto-start session: {e}")
 
-                elif not active and self.is_in_call:
-                    logger.info("Auto-detected call end! Auto-stopping session...")
+                if active:
+                    self._silence_streak = 0
+                    self._active_streak += 1
+                else:
+                    self._active_streak = 0
+                    self._silence_streak += 1
+
+                # Require 2 consecutive active polls (6 seconds) & past cooldown before starting
+                if active and not self.is_in_call and self._active_streak >= 2 and now > self._last_cooldown_until:
+                    # Double check if controller is already recording manually
+                    if not self.controller.is_recording():
+                        prefix = getattr(self.controller.settings, "default_meeting_title_prefix", "[NoteFlow] Meeting")
+                        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        auto_title = f"{prefix} {now_str}"
+                        
+                        logger.info(f"Auto-detected active call! Starting session '{auto_title}'...")
+                        self.is_in_call = True
+                        try:
+                            self.controller.start_session(
+                                title=auto_title,
+                                mode=self.controller.settings.transcription_mode,
+                                theme=self.controller.settings.theme
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to auto-start session: {e}")
+
+                # Require 4 consecutive silent polls (12 seconds) before stopping active call
+                elif not active and self.is_in_call and self._silence_streak >= 4:
+                    logger.info("Auto-detected call end (silence timeout). Stopping session...")
                     self.is_in_call = False
                     try:
-                        self.controller.stop_session()
+                        notes = self.controller.stop_session()
+                        # If transcript was empty, set a 15-second cooldown to prevent infinite re-triggering
+                        if not notes.get("transcript") or not notes.get("transcript", "").strip():
+                            logger.info("Auto call session had empty transcript. Entering 15s cooldown...")
+                            self._last_cooldown_until = time.time() + 15.0
                     except Exception as e:
                         logger.error(f"Failed to auto-stop session: {e}")
 
