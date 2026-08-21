@@ -42,6 +42,16 @@ class CallDetectorDaemon:
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive() and not self._stop_event.is_set()
 
+    def notify_session_started(self) -> None:
+        """Called when a recording session starts."""
+        self.is_in_call = True
+
+    def notify_session_stopped(self, manual: bool = False) -> None:
+        """Called when a recording session stops."""
+        self.is_in_call = False
+        if manual:
+            self._last_cooldown_until = time.time() + 30.0
+
     def _check_active_call(self) -> bool:
         if not sys.platform.startswith("win"):
             return False
@@ -59,7 +69,7 @@ class CallDetectorDaemon:
                             try:
                                 meter = session._ctl.QueryInterface(IAudioMeterInformation)
                                 peak = meter.GetPeakValue()
-                                if peak > 0.002: # Active audio volume present
+                                if peak > 0.01: # Active audio volume present
                                     return True
                             except Exception:
                                 pass
@@ -71,15 +81,27 @@ class CallDetectorDaemon:
             import win32gui
             found_call_window = False
 
+            ignore_exact = ["microsoft teams", "teams", "slack", "zoom", "skype", "discord"]
+            ignore_prefixes = ["chat |", "calendar |", "activity |", "teams |", "files |", "assignments |", "calls |"]
+
             def _enum_window_callback(hwnd, extra):
                 nonlocal found_call_window
                 if win32gui.IsWindowVisible(hwnd):
                     title = win32gui.GetWindowText(hwnd).lower().strip()
-                    if title:
-                        if title in ["microsoft teams", "teams", "slack", "zoom", "skype", "discord"]:
-                            return
-                        if any(kw in title for kw in ["meeting |", "| microsoft teams", "call with", "in a call", "teams meeting", "zoom meeting", "webex meeting"]):
-                            found_call_window = True
+                    if not title:
+                        return
+                    if title in ignore_exact:
+                        return
+                    if any(title.startswith(prefix) for prefix in ignore_prefixes):
+                        return
+                    
+                    meeting_keywords = [
+                        "meeting |", "teams meeting", "meeting in", "meeting with",
+                        "call with", "in a call", "zoom meeting", "webex meeting",
+                        "discord call", "huddle |", "slack huddle"
+                    ]
+                    if any(kw in title for kw in meeting_keywords):
+                        found_call_window = True
 
             win32gui.EnumWindows(_enum_window_callback, None)
             if found_call_window:
@@ -93,6 +115,12 @@ class CallDetectorDaemon:
         while not self._stop_event.is_set():
             try:
                 now = time.time()
+                recording = self.controller.is_recording()
+
+                # Sync state if recording was stopped externally
+                if self.is_in_call and not recording:
+                    self.is_in_call = False
+
                 active = self._check_active_call()
 
                 if active:
@@ -105,7 +133,7 @@ class CallDetectorDaemon:
                 # Require 2 consecutive active polls (6 seconds) & past cooldown before starting
                 if active and not self.is_in_call and self._active_streak >= 2 and now > self._last_cooldown_until:
                     # Double check if controller is already recording manually
-                    if not self.controller.is_recording():
+                    if not recording:
                         prefix = getattr(self.controller.settings, "default_meeting_title_prefix", "[NoteFlow] Meeting")
                         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         auto_title = f"{prefix} {now_str}"

@@ -187,6 +187,9 @@ class SessionController:
                 )
             self._processing_thread = threading.Thread(target=self._processing_loop, daemon=True)
             self._processing_thread.start()
+
+        if getattr(self, "_call_daemon", None):
+            self._call_daemon.notify_session_started()
             
         return self._session
 
@@ -194,6 +197,9 @@ class SessionController:
         """Stops the recording session and processes the result."""
         if not self._session:
             return {}
+
+        if getattr(self, "_call_daemon", None):
+            self._call_daemon.notify_session_stopped(manual=True)
 
         if status_callback:
             self._status_callback = status_callback
