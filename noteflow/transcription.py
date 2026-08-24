@@ -25,6 +25,24 @@ def _detect_device() -> str:
 
 from pathlib import Path
 
+def _resolve_whisper_model_path(models_dir: Path, model_name: str) -> str:
+    """Resolves local directory or HF snapshot path for faster-whisper."""
+    # Check 1: Direct subdirectory (e.g. models/base.en)
+    direct_path = models_dir / model_name
+    if direct_path.exists() and (direct_path / "model.bin").exists():
+        return str(direct_path)
+
+    # Check 2: HF cache snapshot directory (e.g. models/models--Systran--faster-whisper-base.en/snapshots/<hash>)
+    for hf_folder in models_dir.glob(f"*faster-whisper-{model_name}*"):
+        snapshots_dir = hf_folder / "snapshots"
+        if snapshots_dir.exists():
+            snapshots = list(snapshots_dir.glob("*"))
+            if snapshots:
+                return str(snapshots[0])
+
+    # Default to model_name for standard faster-whisper / HF hub lookup
+    return model_name
+
 class WhisperTranscriber:
     """Whisper Speech-to-Text wrapper using faster-whisper."""
 
@@ -35,6 +53,16 @@ class WhisperTranscriber:
         self._lock = threading.Lock()
         self._last_context = ""
         
+        # Configure HuggingFace environment variables to prevent unauthenticated network calls
+        os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN_WARNING"] = "1"
+        os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+        if not allow_online:
+            os.environ["HF_HUB_OFFLINE"] = "1"
+            os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        else:
+            os.environ.pop("HF_HUB_OFFLINE", None)
+            os.environ.pop("TRANSFORMERS_OFFLINE", None)
+
         if device == 'auto':
             device = _detect_device()
             
@@ -45,9 +73,7 @@ class WhisperTranscriber:
         if not models_dir.exists():
             models_dir.mkdir(parents=True, exist_ok=True)
             
-        local_model_path = models_dir / model_name
-        target_model = str(local_model_path) if local_model_path.exists() else model_name
-        
+        target_model = _resolve_whisper_model_path(models_dir, model_name)
         local_files_only = not allow_online
         
         try:
@@ -58,15 +84,21 @@ class WhisperTranscriber:
                 download_root=str(models_dir),
                 local_files_only=local_files_only
             )
-        except Exception:
-            # Fall back to remote download if model is not pre-cached locally yet
-            self._model = WhisperModel(
-                target_model,
-                device=device,
-                compute_type=compute_type,
-                download_root=str(models_dir),
-                local_files_only=False
-            )
+        except Exception as e:
+            if allow_online:
+                # If online downloads are allowed, try fallback to online model name
+                self._model = WhisperModel(
+                    model_name,
+                    device=device,
+                    compute_type=compute_type,
+                    download_root=str(models_dir),
+                    local_files_only=False
+                )
+            else:
+                raise RuntimeError(
+                    f"Failed to load Whisper model '{model_name}' locally from '{models_dir}'. "
+                    f"Online downloads are currently disabled (allow_online_model_download: false). Error: {e}"
+                )
 
     def transcribe_chunk(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
         """Transcribes a short chunk of audio, keeping context from previous chunks."""

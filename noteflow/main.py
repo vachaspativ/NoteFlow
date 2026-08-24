@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
 import click
 from noteflow.config import Settings, TranscriptionMode, Theme, UIMode
 from noteflow.controller import SessionController
