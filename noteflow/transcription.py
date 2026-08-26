@@ -3,6 +3,23 @@ from __future__ import annotations
 import os
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
+# Dynamically add nvidia pip package DLL directories to Windows search path
+if os.name == 'nt':
+    try:
+        import nvidia.cublas
+        import nvidia.cudnn
+        # Walk and register directories containing DLLs
+        for pkg in [nvidia.cublas, nvidia.cudnn]:
+            pkg_path = os.path.dirname(pkg.__file__)
+            for root, dirs, files in os.walk(pkg_path):
+                if any(f.endswith('.dll') for f in files):
+                    try:
+                        os.add_dll_directory(os.path.abspath(root))
+                    except Exception:
+                        pass
+    except ImportError:
+        pass
+
 import threading
 from typing import Optional
 import numpy as np
@@ -99,6 +116,42 @@ class WhisperTranscriber:
                     f"Failed to load Whisper model '{model_name}' locally from '{models_dir}'. "
                     f"Online downloads are currently disabled (allow_online_model_download: false). Error: {e}"
                 )
+
+        # Test if CUDA inference works (forces lazy library loading of cublas64_12.dll)
+        if device == 'cuda':
+            try:
+                import numpy as np
+                dummy_audio = np.zeros(1600, dtype=np.float32)
+                # Force iterator evaluation to trigger library loading
+                list(self._model.transcribe(dummy_audio))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger("noteflow")
+                logger.warning(
+                    f"CUDA execution failed (likely missing runtime DLLs like cublas64_12.dll): {e}. "
+                    f"Automatically falling back to CPU mode."
+                )
+                device = 'cpu'
+                compute_type = 'int8'
+                try:
+                    self._model = WhisperModel(
+                        target_model,
+                        device=device,
+                        compute_type=compute_type,
+                        download_root=str(models_dir),
+                        local_files_only=local_files_only
+                    )
+                except Exception as ex:
+                    if allow_online:
+                        self._model = WhisperModel(
+                            model_name,
+                            device=device,
+                            compute_type=compute_type,
+                            download_root=str(models_dir),
+                            local_files_only=False
+                        )
+                    else:
+                        raise ex
 
     def transcribe_chunk(self, audio: np.ndarray, sample_rate: int = 16000) -> str:
         """Transcribes a short chunk of audio, keeping context from previous chunks."""

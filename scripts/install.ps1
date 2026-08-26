@@ -25,6 +25,15 @@ if (-not (Test-Path '.venv')) {
 Write-Host "[INFO] Installing NoteFlow dependencies..." -ForegroundColor Cyan
 .venv\Scripts\python.exe -m pip install -e .[dev]
 
+# Check for NVIDIA GPU to install CUDA runtimes
+$gpu = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*NVIDIA*" }
+if ($gpu) {
+    Write-Host "[INFO] NVIDIA GPU detected ($($gpu.Name)). Installing CUDA 12 support libraries..." -ForegroundColor Cyan
+    .venv\Scripts\python.exe -m pip install nvidia-cublas-cu12 nvidia-cudnn-cu12
+} else {
+    Write-Host "[INFO] No NVIDIA GPU detected. Skipping CUDA support libraries (CPU fallback will be used)." -ForegroundColor Cyan
+}
+
 # Pre-download Whisper STT model weights
 Write-Host "[INFO] Pre-downloading Whisper STT base model weights..." -ForegroundColor Cyan
 .venv\Scripts\python.exe scripts/preload_models.py base.en
