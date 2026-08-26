@@ -10,13 +10,19 @@ if os.name == 'nt':
         import nvidia.cudnn
         # Walk and register directories containing DLLs
         for pkg in [nvidia.cublas, nvidia.cudnn]:
-            pkg_path = os.path.dirname(pkg.__file__)
-            for root, dirs, files in os.walk(pkg_path):
-                if any(f.endswith('.dll') for f in files):
-                    try:
-                        os.add_dll_directory(os.path.abspath(root))
-                    except Exception:
-                        pass
+            pkg_path = None
+            if hasattr(pkg, "__file__") and pkg.__file__ is not None:
+                pkg_path = os.path.dirname(pkg.__file__)
+            elif hasattr(pkg, "__path__") and pkg.__path__:
+                pkg_path = list(pkg.__path__)[0]
+                
+            if pkg_path:
+                for root, dirs, files in os.walk(pkg_path):
+                    if any(f.endswith('.dll') for f in files):
+                        try:
+                            os.add_dll_directory(os.path.abspath(root))
+                        except Exception:
+                            pass
     except ImportError:
         pass
 
