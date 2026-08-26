@@ -172,6 +172,7 @@ NoteFlow reads and writes configuration seamlessly to `config.yaml` located at t
 | `ollama_model` | `"llama3.2"` | Ollama model name (e.g. `llama3.2`, `mistral`, `phi3`). |
 | `ollama_timeout` | `300` | Timeout in seconds for LLM synthesis (default: 300s). |
 | `ollama_max_retries`| `1` | Number of retry attempts on LLM failure (default: 1 retry). |
+| `enable_map_reduce` | `false` | Enable Native Map-Reduce Orchestrator for long meeting transcripts. |
 | `smtp_host` | `"smtp.gmail.com"`| SMTP email server. |
 | `smtp_port` | `587` | SMTP port (587=STARTTLS, 465=SSL). |
 | `enable_email` | `true` | Toggle automatic sending of meeting notes via SMTP email. |
@@ -194,9 +195,10 @@ NoteFlow reads and writes configuration seamlessly to `config.yaml` located at t
   - Supports active sessions as well as past meetings archived on disk via `/api/sessions/{session_id}/regenerate`.
 - **📥 Transcript Exporting**:
   - Export full timestamped meeting transcripts as `.txt` files with a single click in the Web UI or via `/api/sessions/{session_id}/transcript/download`.
-- **🛡️ LLM Timeout & Retry Resilience**:
+- **🛡️ LLM Timeout, Retry & Map-Reduce Resilience**:
+  - **Native Map-Reduce Orchestrator**: Feature-flagged (`enable_map_reduce: true`) native chunking and synthesis pipeline that splits transcripts longer than 1,200 words into smaller blocks, running map/reduce phases locally. This keeps Ollama CPU RAM usage low and prefill times fast while preserving full conversation context.
   - Increased default timeout to **300s (5 minutes)** for long call handling.
-  - Built-in prompt clipping & sampling for ultra-long calls (>16k chars) to prevent context window overflow and timeouts.
+  - Built-in prompt clipping & sampling for ultra-long calls (>16k chars) as a fallback BAU path.
   - Configurable retry attempts (`OLLAMA_MAX_RETRIES=1`) automatically retries failed LLM generations before throwing errors.
 - **🔒 Interactive UI Feedback & Action Locking**:
   - Button loading spinners (`.btn-spinner`) on active generation tasks.

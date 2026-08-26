@@ -155,3 +155,73 @@ def test_externalized_prompt_template_loaded(client):
     assert "Q3 Review" in prompt
     assert "Sample transcript" in prompt
     assert "Chief of Staff" in prompt
+
+def test_chunk_transcript(client):
+    transcript = "Hello. " * 3000  # 3000 words
+    chunks = client.chunk_transcript(transcript, max_words=1000)
+    assert len(chunks) == 3
+    for c in chunks:
+        assert len(c.split()) <= 1000
+
+def test_generate_notes_map_reduce_flow(mocker, client):
+    mock_map_1 = mocker.Mock(spec=httpx.Response)
+    mock_map_1.status_code = 200
+    mock_map_1.json.return_value = {
+        "response": json.dumps({
+            "summary": "Summary part 1",
+            "action_items": [],
+            "highlights": [],
+            "decisions": [],
+            "risks": [],
+            "dependencies": [],
+            "recommendations": [],
+            "stakeholders": []
+        })
+    }
+
+    mock_map_2 = mocker.Mock(spec=httpx.Response)
+    mock_map_2.status_code = 200
+    mock_map_2.json.return_value = {
+        "response": json.dumps({
+            "summary": "Summary part 2",
+            "action_items": [],
+            "highlights": [],
+            "decisions": [],
+            "risks": [],
+            "dependencies": [],
+            "recommendations": [],
+            "stakeholders": []
+        })
+    }
+
+    mock_reduce = mocker.Mock(spec=httpx.Response)
+    mock_reduce.status_code = 200
+    mock_reduce.json.return_value = {
+        "response": json.dumps({
+            "summary": "Consolidated Summary",
+            "action_items": [{"owner": "John", "action": "Do map-reduce", "deadline": "Now"}],
+            "highlights": [],
+            "decisions": [],
+            "risks": [],
+            "dependencies": [],
+            "recommendations": [],
+            "stakeholders": []
+        })
+    }
+
+    mock_post = mocker.patch(
+        "httpx.Client.post",
+        side_effect=[mock_map_1, mock_map_2, mock_reduce]
+    )
+
+    long_transcript = "Word. " * 1500
+    notes = client.generate_notes(
+        long_transcript,
+        title="Map-Reduce test",
+        duration="10m",
+        enable_map_reduce=True
+    )
+
+    assert notes["summary"] == "Consolidated Summary"
+    assert notes["action_items"][0]["owner"] == "John"
+    assert mock_post.call_count == 3

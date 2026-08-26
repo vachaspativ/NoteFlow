@@ -28,3 +28,4 @@ smtp_password: xxxx_app_password_xxxx
 email_from: you@gmail.com
 email_to: recipient@example.com
 email_subject_prefix: '[NoteFlow]'
+enable_map_reduce: false

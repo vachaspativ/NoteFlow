@@ -60,6 +60,7 @@ class Settings:
     web_port: int = 5000
     dry_run: bool = False
     device_id: int | None = None
+    enable_map_reduce: bool = False
 
     _env_path: str | Path | None = None
 
@@ -134,6 +135,7 @@ class Settings:
         sessions_dir = data.get("sessions_dir") or os.getenv("SESSIONS_DIR", "../noteflow_sessions")
         allow_online_model_download = data.get("allow_online_model_download") if data.get("allow_online_model_download") is not None else (os.getenv("ALLOW_ONLINE_MODEL_DOWNLOAD", "false").lower() in ("true", "1", "yes"))
         enable_email = data.get("enable_email") if data.get("enable_email") is not None else (os.getenv("ENABLE_EMAIL", "true").lower() in ("true", "1", "yes"))
+        enable_map_reduce = data.get("enable_map_reduce") if data.get("enable_map_reduce") is not None else (os.getenv("ENABLE_MAP_REDUCE", "false").lower() in ("true", "1", "yes"))
 
         return cls(
             theme=theme,
@@ -165,6 +167,7 @@ class Settings:
             ui_mode=ui_mode,
             web_host=web_host,
             web_port=web_port,
+            enable_map_reduce=enable_map_reduce,
             _env_path=env_path
         )
 
@@ -201,6 +204,7 @@ class Settings:
             set_key(str(self._env_path), "SESSIONS_DIR", self.sessions_dir)
             set_key(str(self._env_path), "ALLOW_ONLINE_MODEL_DOWNLOAD", "true" if self.allow_online_model_download else "false")
             set_key(str(self._env_path), "ENABLE_EMAIL", "true" if self.enable_email else "false")
+            set_key(str(self._env_path), "ENABLE_MAP_REDUCE", "true" if self.enable_map_reduce else "false")
             return
         
         data = {}
@@ -224,6 +228,7 @@ class Settings:
         data["sessions_dir"] = self.sessions_dir
         data["allow_online_model_download"] = self.allow_online_model_download
         data["enable_email"] = self.enable_email
+        data["enable_map_reduce"] = self.enable_map_reduce
         data["ollama_host"] = self.ollama_host
         data["ollama_port"] = self.ollama_port
         data["ollama_model"] = self.ollama_model
@@ -285,4 +290,8 @@ class Settings:
 
     def save_default_meeting_title_prefix(self, prefix: str) -> None:
         self.default_meeting_title_prefix = prefix
+        self._save_to_yaml()
+
+    def save_enable_map_reduce(self, enable: bool) -> None:
+        self.enable_map_reduce = enable
         self._save_to_yaml()

@@ -127,6 +127,7 @@
       smtpUser: document.getElementById('cfg-smtp-user'),
       emailTo: document.getElementById('cfg-email-to'),
       enableEmail: document.getElementById('cfg-enable-email'),
+      enableMapReduce: document.getElementById('cfg-enable-map-reduce'),
     },
     toastContainer: document.getElementById('toast-container'),
   };
@@ -283,6 +284,7 @@
         els.settingsModal.smtpUser.value = state.settings.smtp_username;
         els.settingsModal.emailTo.value = state.settings.email_to;
         if (els.settingsModal.enableEmail) els.settingsModal.enableEmail.checked = state.settings.enable_email ?? true;
+        if (els.settingsModal.enableMapReduce) els.settingsModal.enableMapReduce.checked = state.settings.enable_map_reduce ?? false;
       }
     } catch (e) {
       console.error('Error loading settings:', e);
@@ -828,6 +830,7 @@
       smtp_username: els.settingsModal.smtpUser.value,
       email_to: els.settingsModal.emailTo.value,
       enable_email: els.settingsModal.enableEmail ? els.settingsModal.enableEmail.checked : true,
+      enable_map_reduce: els.settingsModal.enableMapReduce ? els.settingsModal.enableMapReduce.checked : false,
     };
 
     try {

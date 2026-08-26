@@ -56,6 +56,7 @@ class UpdateSettingsRequest(BaseModel):
     email_from: str | None = None
     email_to: str | None = None
     email_subject_prefix: str | None = None
+    enable_map_reduce: bool | None = None
 
 
 class ResendEmailRequest(BaseModel):
@@ -166,6 +167,7 @@ def create_app(controller: SessionController) -> FastAPI:
             "email_from": s.email_from,
             "email_to": s.email_to,
             "email_subject_prefix": s.email_subject_prefix,
+            "enable_map_reduce": getattr(s, "enable_map_reduce", False),
             "web_port": s.web_port,
         }
 
@@ -215,6 +217,8 @@ def create_app(controller: SessionController) -> FastAPI:
             s.smtp_username = req.smtp_username
         if req.smtp_password:
             s.smtp_password = req.smtp_password
+        if req.enable_map_reduce is not None:
+            s.save_enable_map_reduce(req.enable_map_reduce)
 
         controller.sync_daemon_state()
         return {"success": True, "settings": get_settings()}

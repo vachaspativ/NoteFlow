@@ -304,7 +304,7 @@ class SessionController:
 
         self._update_status('Re-generating structured notes with Ollama...', 0.50)
         try:
-            generated = self._llm_client.generate_notes(target_transcript, title, duration)
+            generated = self._llm_client.generate_notes(target_transcript, title, duration, enable_map_reduce=getattr(self.settings, 'enable_map_reduce', False))
             notes.update(generated)
         except Exception as e:
             logger.error(f"LLM generation failed during regeneration: {e}")
@@ -381,7 +381,7 @@ class SessionController:
                 self._llm_client.timeout = self.settings.ollama_timeout
                 self._llm_client.max_retries = self.settings.ollama_max_retries
                 self._llm_client.base_url = f"{self.settings.ollama_host.rstrip('/')}:{self.settings.ollama_port}"
-                generated = self._llm_client.generate_notes(transcript, title, duration)
+                generated = self._llm_client.generate_notes(transcript, title, duration, enable_map_reduce=getattr(self.settings, 'enable_map_reduce', False))
                 notes.update(generated)
             else:
                 logger.warning("Empty transcript, skipping LLM generation.")

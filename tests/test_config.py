@@ -147,7 +147,8 @@ def test_yaml_config_load_and_save(tmp_path):
         "email_subject_prefix": "[NoteFlow]",
         "ui_mode": "web",
         "web_host": "127.0.0.1",
-        "web_port": 8080
+        "web_port": 8080,
+        "enable_map_reduce": True
     }
     with open(yaml_file, "w") as f:
         yaml.safe_dump(yaml_content, f)
@@ -158,11 +159,16 @@ def test_yaml_config_load_and_save(tmp_path):
     assert settings.ollama_timeout == 150
     assert settings.ollama_max_retries == 2
     assert settings.web_port == 8080
+    assert settings.enable_map_reduce is True
     
     settings.save_theme(Theme.LIGHT)
     assert settings.theme == Theme.LIGHT
+    
+    settings.save_enable_map_reduce(False)
+    assert settings.enable_map_reduce is False
     
     with open(yaml_file, "r") as f:
         saved_data = yaml.safe_load(f)
     assert saved_data["theme"] == "light"
     assert saved_data["transcription_mode"] == "batch"
+    assert saved_data["enable_map_reduce"] is False

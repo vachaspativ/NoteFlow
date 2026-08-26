@@ -64,26 +64,13 @@ class LLMClient:
         """Alias for check_available for backwards compatibility."""
         return self.check_available()
             
-    def generate_notes(self, transcript: str, title: str = '', duration: str = '') -> dict:
-        """
-        Generate structured meeting notes from a transcript with retry logic.
-        
-        Args:
-            transcript: The raw meeting transcript text.
-            title: The meeting title.
-            duration: The meeting duration string.
-            
-        Returns:
-            A dictionary containing summary, action_items, highlights, and decisions.
-        """
-        prompt = self._build_prompt(transcript, title, duration)
+    def _run_ollama_generate(self, prompt: str) -> str:
         payload = {
             "model": self.model,
             "prompt": prompt,
             "stream": False,
             "format": "json"
         }
-        
         attempts = 0
         last_error: Exception | None = None
 
@@ -97,21 +84,7 @@ class LLMClient:
                 raw_text = data.get("response", "")
                 if not raw_text.strip():
                     raise OllamaNotAvailableError("Ollama returned an empty response.")
-
-                # Try to parse the response as JSON
-                try:
-                    parsed_data = json.loads(raw_text)
-                except json.JSONDecodeError:
-                    json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw_text, re.DOTALL)
-                    if json_match:
-                        try:
-                            parsed_data = json.loads(json_match.group(1))
-                        except json.JSONDecodeError:
-                            parsed_data = self._fallback_notes(raw_text)
-                    else:
-                        parsed_data = self._fallback_notes(raw_text)
-
-                return self._validate_notes(parsed_data)
+                return raw_text
 
             except httpx.TimeoutException as e:
                 last_error = OllamaNotAvailableError(
@@ -139,12 +112,184 @@ class LLMClient:
 
             attempts += 1
             if attempts <= self.max_retries:
-                logger.warning(f"Ollama note generation attempt {attempts} failed: {last_error}. Retrying ({attempts}/{self.max_retries})...")
+                logger.warning(f"Ollama call attempt {attempts} failed: {last_error}. Retrying...")
                 time.sleep(1)
 
         if last_error:
             raise last_error
-        raise OllamaNotAvailableError("LLM generation failed after maximum retry attempts.")
+        raise OllamaNotAvailableError("Ollama HTTP generation failed after maximum retries.")
+
+    def chunk_transcript(self, text: str, max_words: int = 1500) -> list[str]:
+        """Split transcript into chunks of up to max_words, keeping sentence boundaries if possible."""
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        chunks = []
+        current_chunk = []
+        current_words = 0
+        
+        for sentence in sentences:
+            sentence_words = len(sentence.split())
+            if current_words + sentence_words > max_words and current_chunk:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = [sentence]
+                current_words = sentence_words
+            else:
+                current_chunk.append(sentence)
+                current_words += sentence_words
+                
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+            
+        return chunks
+
+    def generate_notes(self, transcript: str, title: str = '', duration: str = '', enable_map_reduce: bool = False) -> dict:
+        """
+        Generate structured meeting notes from a transcript.
+        If enable_map_reduce is enabled and transcript is long, executes a Native Map-Reduce pipeline.
+        Otherwise, runs standard BAU single-request logic.
+        """
+        word_count = len(transcript.split())
+        
+        # We define long transcript threshold as 1200 words
+        is_long = word_count > 1200
+        
+        if enable_map_reduce and is_long:
+            logger.info(f"Long transcript detected ({word_count} words). Initiating Native Map-Reduce Orchestrator...")
+            chunks = self.chunk_transcript(transcript, max_words=1000)
+            logger.info(f"Split transcript into {len(chunks)} chunks for mapping.")
+            
+            chunk_outputs = []
+            for i, chunk in enumerate(chunks):
+                logger.info(f"Mapping chunk {i+1}/{len(chunks)}...")
+                map_prompt = self._load_map_prompt_template().format(
+                    meeting_title=title or "Untitled Meeting",
+                    processed_transcript=chunk
+                )
+                try:
+                    raw_res = self._run_ollama_generate(map_prompt)
+                    parsed_chunk = json.loads(raw_res)
+                    chunk_outputs.append(parsed_chunk)
+                except Exception as e:
+                    logger.warning(f"Map phase failed for chunk {i+1}: {e}. Skipping chunk.")
+            
+            if not chunk_outputs:
+                raise ValueError("Map-Reduce failed: all chunks failed to transcribe.")
+                
+            # Synthesize map outputs into an aggregated report
+            reports_str = ""
+            for idx, chunk_notes in enumerate(chunk_outputs):
+                reports_str += f"\nReport from Segment {idx+1}:\n"
+                reports_str += json.dumps(chunk_notes, indent=2) + "\n"
+                
+            logger.info("Reducing mapped chunks to final debrief...")
+            reduce_prompt = self._load_reduce_prompt_template().format(
+                meeting_title=title or "Untitled Meeting",
+                meeting_duration=duration or "Unknown",
+                aggregated_reports=reports_str
+            )
+            
+            try:
+                raw_reduce = self._run_ollama_generate(reduce_prompt)
+                parsed_reduce = json.loads(raw_reduce)
+                return self._validate_notes(parsed_reduce)
+            except Exception as e:
+                logger.error(f"Reduce phase failed: {e}. Falling back to standard fallback notes.")
+                return self._fallback_notes(f"Reduce phase failed: {e}")
+                
+        else:
+            # BAU Flow
+            prompt = self._build_prompt(transcript, title, duration)
+            try:
+                raw_text = self._run_ollama_generate(prompt)
+                # Try to parse the response as JSON
+                try:
+                    parsed_data = json.loads(raw_text)
+                except json.JSONDecodeError:
+                    json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw_text, re.DOTALL)
+                    if json_match:
+                        try:
+                            parsed_data = json.loads(json_match.group(1))
+                        except json.JSONDecodeError:
+                            parsed_data = self._fallback_notes(raw_text)
+                    else:
+                        parsed_data = self._fallback_notes(raw_text)
+
+                return self._validate_notes(parsed_data)
+            except Exception as e:
+                logger.error(f"LLM generation failed: {e}")
+                raise e
+
+    def _load_map_prompt_template(self) -> str:
+        from pathlib import Path
+        possible_paths = [
+            Path("prompts/map_prompt.md"),
+            Path(__file__).parent / "prompts" / "map_prompt.md",
+        ]
+        for path in possible_paths:
+            if path.exists():
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        return f.read().strip()
+                except Exception as e:
+                    logger.warning(f"Could not read map prompt template from {path}: {e}")
+        return """You are an elite, executive-level Chief of Staff and AI Meeting Intelligence Specialist.
+Your objective is to analyze a PARTIAL segment of a raw speech transcript from a meeting and extract structured intelligence.
+
+Meeting Context:
+- Title: {meeting_title}
+
+GUIDELINES FOR SYNTHESIS:
+1. Rely strictly on the information stated in this segment. Do NOT fabricate details.
+2. Structure: Return a single, valid JSON object containing exactly seven key properties: "summary", "action_items", "decisions", "risks", "dependencies", "recommendations", and "stakeholders".
+
+KEYS & FORMAT REQUIREMENTS:
+1. "summary" (string): A bullet-pointed summary of the main points discussed in this segment.
+2. "action_items" (array of objects): Extract all tasks, follow-ups mentioned in this segment. Each object contains: "owner", "action", "deadline".
+3. "decisions" (array of strings): Decisions agreed upon in this segment.
+4. "risks" (array of strings): Risks or issues raised in this segment.
+5. "dependencies" (array of strings): Technical or project dependencies mentioned in this segment.
+6. "recommendations" (array of strings): Strategic paths forward recommended in this segment.
+7. "stakeholders" (array of objects): Key participants mentioned or present in this segment, with "name", "role", and "sentiment" (Supportive, Neutral, Concerned).
+
+---TRANSCRIPT SEGMENT START---
+{processed_transcript}
+---TRANSCRIPT SEGMENT END---
+
+Respond ONLY with the raw JSON object."""
+
+    def _load_reduce_prompt_template(self) -> str:
+        from pathlib import Path
+        possible_paths = [
+            Path("prompts/reduce_prompt.md"),
+            Path(__file__).parent / "prompts" / "reduce_prompt.md",
+        ]
+        for path in possible_paths:
+            if path.exists():
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        return f.read().strip()
+                except Exception as e:
+                    logger.warning(f"Could not read reduce prompt template from {path}: {e}")
+        return """You are an elite, executive-level Chief of Staff and AI Meeting Intelligence Specialist.
+Your objective is to synthesize multiple partial analyses of meeting transcript chunks into a single, cohesive, non-redundant, MECE executive meeting debrief.
+
+Meeting Context:
+- Title: {meeting_title}
+- Duration: {meeting_duration}
+
+Below are the JSON reports generated from each segment of the meeting transcript:
+{aggregated_reports}
+
+YOUR GOAL:
+Consolidate and synthesize these reports into a single, valid JSON object with the following keys:
+1. "summary" (string): A synthesized MECE Executive Summary written as 3 to 6 structured, bullet-pointed key takeaways (each bullet starting with a dash "- "). Deduplicate and present the high-level strategy and outcomes.
+2. "action_items" (array of objects): A consolidated list of all action items, removing duplicates. Limit to a MAXIMUM of 10 items. Each object contains: "owner", "action", "deadline".
+3. "decisions" (array of strings): A consolidated list of all decisions, removing duplicates. Limit to a MAXIMUM of 10 items.
+4. "risks" (array of strings): A consolidated list of all risks, removing duplicates. Limit to a MAXIMUM of 10 items.
+5. "dependencies" (array of strings): A consolidated list of all dependencies, removing duplicates. Limit to a MAXIMUM of 10 items.
+6. "recommendations" (array of strings): A consolidated list of strategic recommendations, removing duplicates. Limit to a MAXIMUM of 10 items.
+7. "stakeholders" (array of objects): A consolidated stakeholder mapping, merging duplicate stakeholders and reporting their overall role/interest and prevailing sentiment (Supportive, Neutral, Concerned). Limit to a MAXIMUM of 10 stakeholders.
+
+Respond ONLY with the raw JSON object."""
         
     def _load_prompt_template(self) -> str:
         """Load the prompt template from external Markdown file or fallback."""
