@@ -20,7 +20,7 @@ class LLMClient:
         self,
         host: str = 'http://localhost',
         port: int = 11434,
-        model: str = 'llama3',
+        model: str = 'llama3.2',
         timeout: int = 300,
         max_retries: int = 1
     ):

@@ -33,8 +33,8 @@ Write-Host "[INFO] Pre-downloading Whisper STT base model weights..." -Foregroun
 $ollama = Get-Command ollama -ErrorAction SilentlyContinue
 if ($ollama) {
     Write-Host "[OK] Ollama found in PATH" -ForegroundColor Green
-    Write-Host "[INFO] Pulling llama3 model..." -ForegroundColor Cyan
-    ollama pull llama3
+    Write-Host "[INFO] Pulling llama3.2 model (optimized for CPU)..." -ForegroundColor Cyan
+    ollama pull llama3.2
 } else {
     Write-Host "[WARN] Ollama not found in PATH. Install from https://ollama.com to enable AI note synthesis." -ForegroundColor Yellow
 }

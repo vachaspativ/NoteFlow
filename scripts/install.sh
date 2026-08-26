@@ -33,7 +33,7 @@ python3 scripts/preload_models.py base.en
 # Check Ollama
 if command -v ollama &> /dev/null; then
     echo -e "\e[32m[OK] Ollama found in PATH\e[0m"
-    ollama pull llama3
+    ollama pull llama3.2
 else
     echo -e "\e[33m[WARN] Ollama not found. Install from https://ollama.com to enable AI note synthesis.\e[0m"
 fi

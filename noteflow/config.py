@@ -144,7 +144,7 @@ class Settings:
             vad_threshold=float(data.get("vad_threshold") or os.getenv("VAD_THRESHOLD", "0.5")),
             ollama_host=data.get("ollama_host") or os.getenv("OLLAMA_HOST", "http://localhost"),
             ollama_port=int(data.get("ollama_port") or os.getenv("OLLAMA_PORT", "11434")),
-            ollama_model=data.get("ollama_model") or os.getenv("OLLAMA_MODEL", "llama3"),
+            ollama_model=data.get("ollama_model") or os.getenv("OLLAMA_MODEL", "llama3.2"),
             ollama_timeout=int(data.get("ollama_timeout") or os.getenv("OLLAMA_TIMEOUT", "300")),
             ollama_max_retries=int(data.get("ollama_max_retries") if data.get("ollama_max_retries") is not None else os.getenv("OLLAMA_MAX_RETRIES", "1")),
             smtp_host=data.get("smtp_host") or os.getenv("SMTP_HOST", "smtp.gmail.com"),

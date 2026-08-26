@@ -73,16 +73,16 @@ flowchart TD
 - **Ollama Local LLM**:
   1. Download and install Ollama from [ollama.com](https://ollama.com).
   2. Start the Ollama application on your machine.
-  3. Download the `llama3` model by running this command in your terminal:
+  3. Download the `llama3.2` model (optimized for CPU, lower memory) by running this command in your terminal:
      ```bash
-     ollama pull llama3
+     ollama pull llama3.2
      ```
      > [!NOTE]
      > **Model File Storage:** Ollama manages model files automatically. You do **not** need to manually download or place any model files. By default, Ollama stores them in:
      > - **Windows:** `C:\Users\<username>\.ollama\models`
      > - **macOS/Linux:** `~/.ollama/models`
      
-  4. **Configure NoteFlow:** Ensure the `ollama_model` key in your local [config.yaml](file:///c:/Users/vacha/code/NoteFlow/config.yaml) file matches the pulled model name (e.g. `ollama_model: "llama3"`). You can also configure this live from the Web UI's Settings modal.
+  4. **Configure NoteFlow:** Ensure the `ollama_model` key in your local [config.yaml](file:///c:/Users/vacha/code/NoteFlow/config.yaml) file matches the pulled model name (e.g. `ollama_model: "llama3.2"`). You can also configure this live from the Web UI's Settings modal.
 
 ### 2. Installation
 ```powershell
@@ -169,7 +169,7 @@ NoteFlow reads and writes configuration seamlessly to `config.yaml` located at t
 | `sessions_dir` | `"../noteflow_sessions"` | Directory outside project root for JSON session archives. |
 | `ollama_host` | `"http://localhost"`| Local Ollama host address. |
 | `ollama_port` | `11434` | Ollama port. |
-| `ollama_model` | `"llama3"` | Ollama model name (e.g. `llama3`, `mistral`, `phi3`). |
+| `ollama_model` | `"llama3.2"` | Ollama model name (e.g. `llama3.2`, `mistral`, `phi3`). |
 | `ollama_timeout` | `300` | Timeout in seconds for LLM synthesis (default: 300s). |
 | `ollama_max_retries`| `1` | Number of retry attempts on LLM failure (default: 1 retry). |
 | `smtp_host` | `"smtp.gmail.com"`| SMTP email server. |

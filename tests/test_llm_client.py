@@ -15,7 +15,7 @@ def test_check_available_returns_true_when_running(mocker, client):
     
     mock_response_tags = mocker.Mock(spec=httpx.Response)
     mock_response_tags.status_code = 200
-    mock_response_tags.json.return_value = {"models": [{"name": "llama3:latest"}]}
+    mock_response_tags.json.return_value = {"models": [{"name": "llama3.2:latest"}]}
     
     mock_get = mocker.patch("httpx.Client.get", side_effect=[mock_response_version, mock_response_tags])
     

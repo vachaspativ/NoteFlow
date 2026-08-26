@@ -16,7 +16,7 @@ notes_dir: ../noteflow_notes
 sessions_dir: ../noteflow_sessions
 ollama_host: http://localhost
 ollama_port: 11434
-ollama_model: llama3
+ollama_model: llama3.2
 ollama_timeout: 300
 ollama_max_retries: 1
 smtp_host: smtp.gmail.com

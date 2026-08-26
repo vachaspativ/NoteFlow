@@ -853,7 +853,7 @@
 
     const logLine = document.createElement('div');
     logLine.className = 'log-line';
-    logLine.innerText = `[${new Date().toLocaleTimeString()}] Re-generating structured notes with model: ${state.settings.ollama_model || 'llama3'} (Timeout: ${state.settings.ollama_timeout || 300}s)`;
+    logLine.innerText = `[${new Date().toLocaleTimeString()}] Re-generating structured notes with model: ${state.settings.ollama_model || 'llama3.2'} (Timeout: ${state.settings.ollama_timeout || 300}s)`;
     els.processing.log.appendChild(logLine);
 
     try {
