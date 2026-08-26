@@ -147,6 +147,11 @@ class LLMClient:
         If enable_map_reduce is enabled and transcript is long, executes a Native Map-Reduce pipeline.
         Otherwise, runs standard BAU single-request logic.
         """
+        print(f"\n[NoteFlow] Llama processing started for model '{self.model}' (Transcript length: {len(transcript)} characters)...", flush=True)
+        logger.info(f"=== LLM Notes Generation Started ===")
+        logger.info(f"Model: {self.model}")
+        logger.info(f"Transcript length: {len(transcript)} characters")
+
         word_count = len(transcript.split())
         
         # We define long transcript threshold as 1200 words
