@@ -188,6 +188,9 @@ class SessionController:
             self._processing_thread = threading.Thread(target=self._processing_loop, daemon=True)
             self._processing_thread.start()
 
+        print(f"\n[NoteFlow] 🎙️ Call recording & transcription started for '{title}' (Mode: {mode.value.upper()}, Model: {self.settings.whisper_model})...", flush=True)
+        logger.info(f"=== Transcription Session Started: '{title}' (Mode: {mode.value}) ===")
+
         if getattr(self, "_call_daemon", None):
             self._call_daemon.notify_session_started()
             
@@ -217,6 +220,8 @@ class SessionController:
                 self._processing_thread.join(timeout=10.0)
         elif self._session.mode == TranscriptionMode.BATCH:
             self._update_status('Transcribing full recording (Batch mode)...', 0.25)
+            print(f"\n[NoteFlow] 🎙️ Batch transcription started with Whisper (Model: {self.settings.whisper_model})...", flush=True)
+            logger.info("=== Batch Transcription Processing Started ===")
             if self._audio_capture:
                 if self._transcriber is None:
                     self._transcriber = WhisperTranscriber(
@@ -330,6 +335,7 @@ class SessionController:
         if not self._audio_capture or not self._transcriber:
             return
             
+        logger.info("=== Live Audio Chunk Transcription Loop Active ===")
         while not self._stop_event.is_set():
             chunk = self._audio_capture.get_chunk(timeout=0.5)
             if chunk is not None:

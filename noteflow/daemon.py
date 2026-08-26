@@ -31,6 +31,7 @@ class CallDetectorDaemon:
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
+        print("\n[NoteFlow Daemon] 🎧 Background call listener active. Monitoring Teams, Zoom, Webex, Slack, and Discord calls...", flush=True)
         logger.info("CallDetectorDaemon background thread started.")
 
     def stop(self) -> None:
@@ -138,6 +139,8 @@ class CallDetectorDaemon:
                         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         auto_title = f"{prefix} {now_str}"
                         
+                        print(f"\n[NoteFlow Daemon] 📞 Active call detected! Auto-starting recording for '{auto_title}'...", flush=True)
+                        logger.info(f"=== Auto-Detected Active Call ===")
                         logger.info(f"Auto-detected active call! Starting session '{auto_title}'...")
                         self.is_in_call = True
                         try:
@@ -151,6 +154,7 @@ class CallDetectorDaemon:
 
                 # Require 4 consecutive silent polls (12 seconds) before stopping active call
                 elif not active and self.is_in_call and self._silence_streak >= 4:
+                    print(f"\n[NoteFlow Daemon] 🛑 Call ended (silence detected). Finalizing auto-captured session and generating notes...", flush=True)
                     logger.info("Auto-detected call end (silence timeout). Stopping session...")
                     self.is_in_call = False
                     try:
