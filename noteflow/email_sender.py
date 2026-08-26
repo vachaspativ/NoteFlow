@@ -123,6 +123,45 @@ class EmailSender:
             for dec in decisions:
                 decisions_html += f"<li>{dec}</li>"
 
+        # Stakeholders
+        stakeholders = notes.get("stakeholders", [])
+        stakeholders_html = ""
+        if not stakeholders:
+            stakeholders_html = "<tr><td colspan='3' style='padding: 12px; text-align: center; border: 1px solid #ddd;'>No stakeholders mapped.</td></tr>"
+        else:
+            for sh in stakeholders:
+                name = sh.get("name", "Unknown")
+                role = sh.get("role", "Participant")
+                sentiment = sh.get("sentiment", "Neutral")
+                stakeholders_html += f"<tr><td style='padding: 12px; border: 1px solid #ddd;'>{name}</td><td style='padding: 12px; border: 1px solid #ddd;'>{role}</td><td style='padding: 12px; border: 1px solid #ddd;'>{sentiment}</td></tr>"
+
+        # Risks
+        risks = notes.get("risks", [])
+        risks_html = ""
+        if not risks:
+            risks_html = "<li>No risks identified.</li>"
+        else:
+            for r in risks:
+                risks_html += f"<li>{r}</li>"
+
+        # Dependencies
+        dependencies = notes.get("dependencies", [])
+        dependencies_html = ""
+        if not dependencies:
+            dependencies_html = "<li>No dependencies identified.</li>"
+        else:
+            for d in dependencies:
+                dependencies_html += f"<li>{d}</li>"
+
+        # Recommendations
+        recommendations = notes.get("recommendations", [])
+        recommendations_html = ""
+        if not recommendations:
+            recommendations_html = "<li>No recommendations recorded.</li>"
+        else:
+            for rec in recommendations:
+                recommendations_html += f"<li>{rec}</li>"
+
         if not self.html_template:
             # simple fallback
             return f"<h1>{title}</h1><p>{summary}</p>"
@@ -139,6 +178,10 @@ class EmailSender:
         html = html.replace("{action_items_html}", action_items_html)
         html = html.replace("{highlights_html}", highlights_html)
         html = html.replace("{decisions_html}", decisions_html)
+        html = html.replace("{stakeholders_html}", stakeholders_html)
+        html = html.replace("{risks_html}", risks_html)
+        html = html.replace("{dependencies_html}", dependencies_html)
+        html = html.replace("{recommendations_html}", recommendations_html)
         html = html.replace("{transcript}", transcript)
         
         return html
@@ -162,6 +205,15 @@ class EmailSender:
         lines.append("-" * 60)
         lines.append(notes.get("summary", ""))
         
+        lines.append("\nSTAKEHOLDER MAPPING")
+        lines.append("-" * 60)
+        stakeholders = notes.get("stakeholders", [])
+        if stakeholders:
+            for sh in stakeholders:
+                lines.append(f"- {sh.get('name', 'Unknown')} ({sh.get('role', 'Participant')}) - Sentiment: {sh.get('sentiment', 'Neutral')}")
+        else:
+            lines.append("No stakeholders mapped.")
+
         lines.append("\nACTION ITEMS")
         lines.append("-" * 60)
         action_items = notes.get("action_items", [])
@@ -174,15 +226,6 @@ class EmailSender:
         else:
             lines.append("No action items.")
 
-        lines.append("\nHIGHLIGHTS")
-        lines.append("-" * 60)
-        highlights = notes.get("highlights", [])
-        if highlights:
-            for hl in highlights:
-                lines.append(f"- {hl}")
-        else:
-            lines.append("No highlights.")
-
         lines.append("\nDECISIONS")
         lines.append("-" * 60)
         decisions = notes.get("decisions", [])
@@ -191,6 +234,41 @@ class EmailSender:
                 lines.append(f"- {dec}")
         else:
             lines.append("No decisions recorded.")
+
+        lines.append("\nRISKS")
+        lines.append("-" * 60)
+        risks = notes.get("risks", [])
+        if risks:
+            for r in risks:
+                lines.append(f"- {r}")
+        else:
+            lines.append("No risks identified.")
+
+        lines.append("\nDEPENDENCIES")
+        lines.append("-" * 60)
+        dependencies = notes.get("dependencies", [])
+        if dependencies:
+            for d in dependencies:
+                lines.append(f"- {d}")
+        else:
+            lines.append("No dependencies identified.")
+
+        lines.append("\nSTRATEGIC RECOMMENDATIONS")
+        lines.append("-" * 60)
+        recommendations = notes.get("recommendations", [])
+        if recommendations:
+            for rec in recommendations:
+                lines.append(f"- {rec}")
+        else:
+            lines.append("No recommendations recorded.")
+
+        # Legacy Highlights block
+        highlights = notes.get("highlights", [])
+        if highlights:
+            lines.append("\nHIGHLIGHTS")
+            lines.append("-" * 60)
+            for hl in highlights:
+                lines.append(f"- {hl}")
 
         lines.append("\n" + "=" * 60)
         lines.append("RAW TRANSCRIPT")

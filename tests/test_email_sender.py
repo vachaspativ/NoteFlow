@@ -12,7 +12,11 @@ def dummy_notes():
             {"owner": "Bob", "action": "Review budget", "deadline": "Monday"}
         ],
         "highlights": ["Great quarterly results", "New client acquired"],
-        "decisions": ["Approved $10k budget for marketing"]
+        "decisions": ["Approved $10k budget for marketing"],
+        "risks": ["Potential delays"],
+        "dependencies": ["Team approval"],
+        "recommendations": ["Scale up marketing"],
+        "stakeholders": [{"name": "Alice", "role": "Presenter", "sentiment": "Supportive"}]
     }
 
 @pytest.fixture

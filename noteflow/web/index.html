@@ -336,18 +336,31 @@
               </div>
             </div>
 
-            <!-- Key Highlights -->
-            <div class="note-card highlights-card">
+            <!-- Stakeholder Mapping -->
+            <div class="note-card stakeholders-card">
               <div class="card-header">
                 <div class="header-title">
-                  <span class="card-icon">💡</span>
-                  <h3>Key Highlights</h3>
+                  <span class="card-icon">👥</span>
+                  <h3>Stakeholder Mapping</h3>
                 </div>
               </div>
               <div class="card-body">
-                <ul class="highlights-list" id="res-highlights-list">
-                  <li class="empty-state-text">No key highlights recorded.</li>
-                </ul>
+                <div class="table-responsive">
+                  <table class="data-table" id="res-stakeholders-table">
+                    <thead>
+                      <tr>
+                        <th>Participant / Team</th>
+                        <th>Role / Interest</th>
+                        <th style="width: 120px;">Sentiment</th>
+                      </tr>
+                    </thead>
+                    <tbody id="res-stakeholders-list">
+                      <tr>
+                        <td colspan="3" class="empty-state-text">No stakeholders identified.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
@@ -362,6 +375,45 @@
               <div class="card-body">
                 <ul class="decisions-list" id="res-decisions-list">
                   <li class="empty-state-text">No decisions recorded.</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Risks & Dependencies -->
+            <div class="note-card risks-card">
+              <div class="card-header">
+                <div class="header-title">
+                  <span class="card-icon">⚠️</span>
+                  <h3>Risks & Dependencies</h3>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="analysis-subsection">
+                  <h4>Risks</h4>
+                  <ul class="risks-list" id="res-risks-list">
+                    <li class="empty-state-text">No risks identified.</li>
+                  </ul>
+                </div>
+                <div class="analysis-subsection" style="margin-top: 15px;">
+                  <h4>Dependencies</h4>
+                  <ul class="dependencies-list" id="res-dependencies-list">
+                    <li class="empty-state-text">No dependencies identified.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Strategic Recommendations -->
+            <div class="note-card recommendations-card">
+              <div class="card-header">
+                <div class="header-title">
+                  <span class="card-icon">💡</span>
+                  <h3>Strategic Recommendations</h3>
+                </div>
+              </div>
+              <div class="card-body">
+                <ul class="recommendations-list" id="res-recommendations-list">
+                  <li class="empty-state-text">No recommendations recorded.</li>
                 </ul>
               </div>
             </div>

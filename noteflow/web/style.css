@@ -1087,8 +1087,99 @@ body {
   padding: 20px;
 }
 
-.summary-card, .actions-card {
+.summary-card, .stakeholders-card, .actions-card, .recommendations-card {
   grid-column: span 2;
+}
+
+/* Modern Data Table for Stakeholders */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.data-table th, .data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.data-table th {
+  background-color: var(--bg-surface-raised);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.data-table tr:hover td {
+  background-color: var(--bg-surface-raised);
+}
+
+/* Sentiment Badges */
+.badge-sentiment {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.sentiment-supportive {
+  background-color: rgba(46, 160, 67, 0.15);
+  color: #56d364;
+  border: 1px solid rgba(46, 160, 67, 0.3);
+}
+
+.sentiment-concerned {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: #ff7b72;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.sentiment-neutral {
+  background-color: rgba(139, 148, 158, 0.15);
+  color: #c9d1d9;
+  border: 1px solid rgba(139, 148, 158, 0.3);
+}
+
+/* Light Theme overrides for sentiment badges */
+body.light-theme .sentiment-supportive {
+  background-color: #dafbe1;
+  color: #1a7f37;
+  border: 1px solid rgba(26, 127, 55, 0.2);
+}
+
+body.light-theme .sentiment-concerned {
+  background-color: #ffebe9;
+  color: #cf222e;
+  border: 1px solid rgba(207, 34, 46, 0.2);
+}
+
+body.light-theme .sentiment-neutral {
+  background-color: #eff1f3;
+  color: #57606a;
+  border: 1px solid rgba(87, 96, 106, 0.2);
+}
+
+/* Subsections in Risks card */
+.analysis-subsection h4 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
 }
 
 .summary-text {

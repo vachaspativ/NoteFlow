@@ -487,14 +487,52 @@ class SessionController:
         duration = notes.get('duration', '')
         summary = notes.get('summary', '')
         action_items = notes.get('action_items', [])
-        highlights = notes.get('highlights', [])
         decisions = notes.get('decisions', [])
+        risks = notes.get('risks', [])
+        dependencies = notes.get('dependencies', [])
+        recommendations = notes.get('recommendations', [])
+        stakeholders = notes.get('stakeholders', [])
         
         content = f"# 📝 {title}\n\n"
         content += f"**Duration:** {duration} | **Recorded:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         content += "---\n\n"
-        content += f"## 📋 Executive Summary\n{summary}\n\n"
+        content += f"## 📋 Executive Debrief\n{summary}\n\n"
         
+        if stakeholders:
+            content += "## 👥 Stakeholder Mapping\n"
+            content += "| Participant | Role / Interest | Sentiment |\n"
+            content += "| :--- | :--- | :--- |\n"
+            for sh in stakeholders:
+                name = sh.get('name', 'Unknown')
+                role = sh.get('role', 'Participant')
+                sentiment = sh.get('sentiment', 'Neutral')
+                content += f"| {name} | {role} | {sentiment} |\n"
+            content += "\n"
+
+        if decisions:
+            content += "## 🎯 Decisions Made\n"
+            for dec in decisions:
+                content += f"- {dec}\n"
+            content += "\n"
+
+        if risks or dependencies:
+            content += "## ⚠️ Risks & Dependencies\n"
+            if risks:
+                content += "### Risks\n"
+                for r in risks:
+                    content += f"- {r}\n"
+            if dependencies:
+                content += "### Dependencies\n"
+                for d in dependencies:
+                    content += f"- {d}\n"
+            content += "\n"
+
+        if recommendations:
+            content += "## 💡 Strategic Recommendations\n"
+            for rec in recommendations:
+                content += f"- {rec}\n"
+            content += "\n"
+            
         if action_items:
             content += "## ✅ Action Items\n"
             for item in action_items:
@@ -505,18 +543,6 @@ class SessionController:
                     content += f"- [ ] **{owner}**: {action} *(Due: {deadline})*\n"
                 else:
                     content += f"- [ ] {item}\n"
-            content += "\n"
-            
-        if highlights:
-            content += "## 💡 Key Highlights\n"
-            for hl in highlights:
-                content += f"- {hl}\n"
-            content += "\n"
-            
-        if decisions:
-            content += "## 🎯 Decisions Made\n"
-            for dec in decisions:
-                content += f"- {dec}\n"
             content += "\n"
             
         content += "## 🎙️ Transcript\n\n"

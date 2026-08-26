@@ -53,7 +53,11 @@ def test_valid_json_response(mocker, client):
         "summary": "This is a summary.",
         "action_items": [{"owner": "John", "action": "Do something", "deadline": "Tomorrow"}],
         "highlights": ["Important point"],
-        "decisions": ["We decided this"]
+        "decisions": ["We decided this"],
+        "risks": ["Risk point"],
+        "dependencies": ["Dependency point"],
+        "recommendations": ["Recommendation point"],
+        "stakeholders": [{"name": "John", "role": "Host", "sentiment": "Supportive"}]
     }
     
     mock_response = mocker.Mock(spec=httpx.Response)
@@ -79,6 +83,10 @@ def test_malformed_json_fallback(mocker, client):
     assert notes["action_items"] == []
     assert notes["highlights"] == []
     assert notes["decisions"] == []
+    assert notes["risks"] == []
+    assert notes["dependencies"] == []
+    assert notes["recommendations"] == []
+    assert notes["stakeholders"] == []
 
 def test_ollama_not_running_raises(mocker, client):
     mocker.patch("httpx.Client.post", side_effect=httpx.RequestError("Failed to connect"))
@@ -89,7 +97,7 @@ def test_ollama_not_running_raises(mocker, client):
 def test_validate_notes_fills_missing_keys(client):
     incomplete_data = {
         "summary": "Just a summary"
-        # Missing action_items, highlights, decisions
+        # Missing action_items, highlights, decisions, risks, etc.
     }
     
     validated = client._validate_notes(incomplete_data)
@@ -98,6 +106,10 @@ def test_validate_notes_fills_missing_keys(client):
     assert validated["action_items"] == []
     assert validated["highlights"] == []
     assert validated["decisions"] == []
+    assert validated["risks"] == []
+    assert validated["dependencies"] == []
+    assert validated["recommendations"] == []
+    assert validated["stakeholders"] == []
 
 def test_ollama_timeout_raises_descriptive_error(mocker, client):
     mocker.patch("httpx.Client.post", side_effect=httpx.TimeoutException("Read timed out"))
@@ -121,7 +133,11 @@ def test_generate_notes_retries_on_failure_then_succeeds(mocker):
             "summary": "Retried summary",
             "action_items": [],
             "highlights": [],
-            "decisions": []
+            "decisions": [],
+            "risks": [],
+            "dependencies": [],
+            "recommendations": [],
+            "stakeholders": []
         })
     }
 

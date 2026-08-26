@@ -171,24 +171,31 @@ Meeting Context:
 GUIDELINES FOR SYNTHESIS:
 1. Accuracy & Truthfulness: Rely STRICTLY on the information stated in the transcript. Do NOT fabricate metrics, names, deadlines, or decisions.
 2. Executive Tone: Use clear, formal, executive business English. Avoid colloquialisms or casual phrasing.
-3. Structure: Return a single, valid JSON object containing exactly four key properties: "summary", "action_items", "highlights", and "decisions".
+3. Structure: Return a single, valid JSON object containing exactly seven key properties: "summary", "action_items", "decisions", "risks", "dependencies", "recommendations", and "stakeholders".
 
 KEYS & FORMAT REQUIREMENTS:
 
-1. "summary" (string): An Executive Summary written as 3 to 6 structured, bullet-pointed key takeaways (each bullet starting with a dash "- "). Synthesize the core agenda, major themes discussed, strategic context, and high-level outcomes. Do NOT write a single continuous paragraph; format strictly as clear bullet points.
+1. "summary" (string): A MECE Executive Debrief summarizing the core agenda, strategic context, and high-level outcomes of the meeting. Format it strictly as 3 to 6 bullet-pointed takeaways (each bullet starting with a dash "- ").
 
-2. "action_items" (array of objects): Extract all distinct tasks, deliverables, and follow-ups mentioned in the meeting.
-   - Limit: Include up to a MAXIMUM OF 10 most critical action items (do not limit to 3 if more exist, but do not exceed 10).
-   - Each object MUST contain exactly:
-     * "owner": Name of the individual or team responsible (e.g. "John", "Engineering Team", or "Unassigned" if unnamed).
-     * "action": Clear, actionable description of what needs to be done.
-     * "deadline": Specific date, timeframe, or milestone mentioned (e.g. "EOD Friday", "Q3 Release", or "Not specified").
+2. "action_items" (array of objects): Extract all distinct tasks, deliverables, and follow-ups. Limit: Up to a MAXIMUM of 10.
+   Each object MUST contain:
+     * "owner": Responsible name/team, or "Unassigned".
+     * "action": Clear actionable task description.
+     * "deadline": Specific date, milestone, or "Not specified".
 
-3. "highlights" (array of strings): Extract key insights, critical metrics, major discussion points, risk factors, or notable perspectives shared.
-   - Limit: Include up to a MAXIMUM OF 10 key highlight statements. Each string should be concise, impactful, and informative.
+3. "decisions" (array of strings): Concrete strategic or architectural choices and consensus points. Limit: Up to a MAXIMUM of 10.
 
-4. "decisions" (array of strings): Extract all concrete decisions, policies, architectural choices, or consensus items agreed upon during the meeting.
-   - Limit: Include up to a MAXIMUM OF 10 decision statements.
+4. "risks" (array of strings): Potential blocker issues, architectural vulnerabilities, resource constraints, or business risks. Limit: Up to a MAXIMUM of 10.
+
+5. "dependencies" (array of strings): External timelines, blocking tasks, or technical requirements from other teams/systems. Limit: Up to a MAXIMUM of 10.
+
+6. "recommendations" (array of strings): Concrete strategic paths forward and recommendations advised by participants. Limit: Up to a MAXIMUM of 10.
+
+7. "stakeholders" (array of objects): Mapping of key stakeholders, participants, or teams discussed or present. Limit: Up to a MAXIMUM of 10.
+   Each object MUST contain:
+     * "name": Person or team name.
+     * "role": Their role, interest, or perspective in the meeting.
+     * "sentiment": Their sentiment or stance (exactly one of: "Supportive", "Neutral", "Concerned").
 
 ---TRANSCRIPT START---
 {processed_transcript}
@@ -224,7 +231,11 @@ Respond ONLY with the raw JSON object. Do not include any preamble, markdown wra
             "summary": raw_text.strip(),
             "action_items": [],
             "highlights": [],
-            "decisions": []
+            "decisions": [],
+            "risks": [],
+            "dependencies": [],
+            "recommendations": [],
+            "stakeholders": []
         }
         
     def _validate_notes(self, data: dict) -> dict:
@@ -250,23 +261,56 @@ Respond ONLY with the raw JSON object. Do not include any preamble, markdown wra
         else:
             decisions = []
 
+        risks = data.get("risks", [])
+        if isinstance(risks, list):
+            risks = risks[:10]
+        else:
+            risks = []
+
+        dependencies = data.get("dependencies", [])
+        if isinstance(dependencies, list):
+            dependencies = dependencies[:10]
+        else:
+            dependencies = []
+
+        recommendations = data.get("recommendations", [])
+        if isinstance(recommendations, list):
+            recommendations = recommendations[:10]
+        else:
+            recommendations = []
+
+        stakeholders = data.get("stakeholders", [])
+        if isinstance(stakeholders, list):
+            valid_stakeholders = []
+            for s in stakeholders[:10]:
+                if isinstance(s, dict):
+                    valid_stakeholders.append({
+                        "name": str(s.get("name", "Unknown")),
+                        "role": str(s.get("role", "Participant")),
+                        "sentiment": str(s.get("sentiment", "Neutral"))
+                    })
+                else:
+                    valid_stakeholders.append({
+                        "name": str(s),
+                        "role": "Participant",
+                        "sentiment": "Neutral"
+                    })
+            stakeholders = valid_stakeholders
+        else:
+            stakeholders = []
+
         validated = {
             "summary": data.get("summary", ""),
             "action_items": action_items,
             "highlights": highlights,
-            "decisions": decisions
+            "decisions": decisions,
+            "risks": risks,
+            "dependencies": dependencies,
+            "recommendations": recommendations,
+            "stakeholders": stakeholders
         }
         
         if not isinstance(validated["summary"], str):
             validated["summary"] = str(validated["summary"])
-            
-        if not isinstance(validated["action_items"], list):
-            validated["action_items"] = []
-            
-        if not isinstance(validated["highlights"], list):
-            validated["highlights"] = []
-            
-        if not isinstance(validated["decisions"], list):
-            validated["decisions"] = []
             
         return validated

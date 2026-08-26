@@ -82,7 +82,10 @@
       summary: document.getElementById('res-summary'),
       actionsCount: document.getElementById('res-actions-count'),
       actionsList: document.getElementById('res-actions-list'),
-      highlightsList: document.getElementById('res-highlights-list'),
+      stakeholdersList: document.getElementById('res-stakeholders-list'),
+      risksList: document.getElementById('res-risks-list'),
+      dependenciesList: document.getElementById('res-dependencies-list'),
+      recommendationsList: document.getElementById('res-recommendations-list'),
       decisionsList: document.getElementById('res-decisions-list'),
       transcriptBody: document.getElementById('res-transcript-body'),
       transcriptText: document.getElementById('res-transcript-text'),
@@ -611,16 +614,25 @@
       });
     }
 
-    // Highlights
-    els.results.highlightsList.innerHTML = '';
-    const highlights = notes.highlights || [];
-    if (highlights.length === 0) {
-      els.results.highlightsList.innerHTML = '<li class="empty-state-text">No key highlights recorded.</li>';
+    // Stakeholders
+    els.results.stakeholdersList.innerHTML = '';
+    const stakeholders = notes.stakeholders || [];
+    if (stakeholders.length === 0) {
+      els.results.stakeholdersList.innerHTML = '<tr><td colspan="3" class="empty-state-text">No stakeholders identified.</td></tr>';
     } else {
-      highlights.forEach((h) => {
-        const li = document.createElement('li');
-        li.innerText = h;
-        els.results.highlightsList.appendChild(li);
+      stakeholders.forEach((sh) => {
+        const tr = document.createElement('tr');
+        const name = sh.name || 'Unknown';
+        const role = sh.role || 'Participant';
+        const sentiment = sh.sentiment || 'Neutral';
+        const sentLower = sentiment.toLowerCase();
+        const badgeClass = `badge-sentiment sentiment-${sentLower === 'supportive' ? 'supportive' : sentLower === 'concerned' ? 'concerned' : 'neutral'}`;
+        tr.innerHTML = `
+          <td><strong>${escapeHtml(name)}</strong></td>
+          <td>${escapeHtml(role)}</td>
+          <td><span class="badge ${badgeClass}">${escapeHtml(sentiment)}</span></td>
+        `;
+        els.results.stakeholdersList.appendChild(tr);
       });
     }
 
@@ -634,6 +646,45 @@
         const li = document.createElement('li');
         li.innerText = d;
         els.results.decisionsList.appendChild(li);
+      });
+    }
+
+    // Risks
+    els.results.risksList.innerHTML = '';
+    const risks = notes.risks || [];
+    if (risks.length === 0) {
+      els.results.risksList.innerHTML = '<li class="empty-state-text">No risks identified.</li>';
+    } else {
+      risks.forEach((r) => {
+        const li = document.createElement('li');
+        li.innerText = r;
+        els.results.risksList.appendChild(li);
+      });
+    }
+
+    // Dependencies
+    els.results.dependenciesList.innerHTML = '';
+    const dependencies = notes.dependencies || [];
+    if (dependencies.length === 0) {
+      els.results.dependenciesList.innerHTML = '<li class="empty-state-text">No dependencies identified.</li>';
+    } else {
+      dependencies.forEach((d) => {
+        const li = document.createElement('li');
+        li.innerText = d;
+        els.results.dependenciesList.appendChild(li);
+      });
+    }
+
+    // Recommendations
+    els.results.recommendationsList.innerHTML = '';
+    const recommendations = notes.recommendations || [];
+    if (recommendations.length === 0) {
+      els.results.recommendationsList.innerHTML = '<li class="empty-state-text">No recommendations recorded.</li>';
+    } else {
+      recommendations.forEach((rec) => {
+        const li = document.createElement('li');
+        li.innerText = rec;
+        els.results.recommendationsList.appendChild(li);
       });
     }
 
