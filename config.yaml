@@ -10,7 +10,7 @@ allow_online_model_download: false
 chunk_duration_secs: 3
 vad_threshold: 0.5
 enable_loopback: true
-auto_call_detection: false
+auto_call_detection: true
 default_meeting_title_prefix: '[NoteFlow] Meeting'
 notes_dir: ../noteflow_notes
 sessions_dir: ../noteflow_sessions
