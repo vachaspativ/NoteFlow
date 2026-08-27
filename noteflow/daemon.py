@@ -53,11 +53,50 @@ class CallDetectorDaemon:
         if manual:
             self._last_cooldown_until = time.time() + 30.0
 
-    def _check_active_call(self) -> bool:
-        if not sys.platform.startswith("win"):
+    def _has_meeting_window(self) -> bool:
+        """Inspect visible Windows top-level windows for active meeting signatures."""
+        try:
+            import win32gui
+            found_call_window = False
+
+            ignore_exact = {
+                "microsoft teams", "teams", "slack", "zoom", "zoom workplace",
+                "zoom cloud meetings", "skype", "discord", "cisco webex", "webex",
+                "settings", "call history"
+            }
+            ignore_prefixes = (
+                "chat |", "calendar |", "activity |", "teams |", "files |",
+                "assignments |", "calls |", "settings |", "notifications |",
+                "general |", "feed |", "search |", "help |"
+            )
+
+            meeting_keywords = (
+                "meeting |", "teams meeting", "meeting in", "meeting with",
+                "call with", "in a call", "zoom meeting", "webex meeting",
+                "cisco webex meetings", "discord call", "huddle |", "slack huddle",
+                "- google meet", "meet - "
+            )
+
+            def _enum_window_callback(hwnd, extra):
+                nonlocal found_call_window
+                if win32gui.IsWindowVisible(hwnd):
+                    title = win32gui.GetWindowText(hwnd).lower().strip()
+                    if not title or title in ignore_exact:
+                        return
+                    if any(title.startswith(prefix) for prefix in ignore_prefixes):
+                        return
+                    
+                    if any(kw in title for kw in meeting_keywords):
+                        found_call_window = True
+
+            win32gui.EnumWindows(_enum_window_callback, None)
+            return found_call_window
+        except Exception as e:
+            logger.debug(f"Error checking window titles: {e}")
             return False
 
-        # Layer 1: WASAPI Audio Peak Meter check via pycaw
+    def _has_active_comm_audio(self) -> bool:
+        """Check WASAPI peak meters for communication processes."""
         try:
             from pycaw.pycaw import AudioUtilities, IAudioMeterInformation
             sessions = AudioUtilities.GetAllSessions()
@@ -65,52 +104,31 @@ class CallDetectorDaemon:
                 if session.Process:
                     proc_name = session.Process.name().lower()
                     if any(kw in proc_name for kw in TARGET_COMMUNICATION_KEYWORDS):
-                        # AudioSessionStateActive == 1
                         if hasattr(session, "State") and session.State == 1:
                             try:
                                 meter = session._ctl.QueryInterface(IAudioMeterInformation)
                                 peak = meter.GetPeakValue()
-                                if peak > 0.01: # Active audio volume present
+                                # Require substantial audio level (> 0.03) to ignore idle line noise/pings
+                                if peak > 0.03:
                                     return True
                             except Exception:
                                 pass
         except Exception as e:
             logger.debug(f"Error querying WASAPI audio sessions: {e}")
-
-        # Layer 2: Explicit meeting/call window title check (ignoring idle app windows)
-        try:
-            import win32gui
-            found_call_window = False
-
-            ignore_exact = ["microsoft teams", "teams", "slack", "zoom", "skype", "discord"]
-            ignore_prefixes = ["chat |", "calendar |", "activity |", "teams |", "files |", "assignments |", "calls |"]
-
-            def _enum_window_callback(hwnd, extra):
-                nonlocal found_call_window
-                if win32gui.IsWindowVisible(hwnd):
-                    title = win32gui.GetWindowText(hwnd).lower().strip()
-                    if not title:
-                        return
-                    if title in ignore_exact:
-                        return
-                    if any(title.startswith(prefix) for prefix in ignore_prefixes):
-                        return
-                    
-                    meeting_keywords = [
-                        "meeting |", "teams meeting", "meeting in", "meeting with",
-                        "call with", "in a call", "zoom meeting", "webex meeting",
-                        "discord call", "huddle |", "slack huddle"
-                    ]
-                    if any(kw in title for kw in meeting_keywords):
-                        found_call_window = True
-
-            win32gui.EnumWindows(_enum_window_callback, None)
-            if found_call_window:
-                return True
-        except Exception as e:
-            logger.debug(f"Error checking window titles: {e}")
-
         return False
+
+    def _check_active_call(self) -> bool:
+        """Determines if a real meeting/call is actively in progress.
+        
+        Requires verified meeting window presence to prevent false positives from
+        background chat notifications, audio device switching, or Bluetooth keepalives.
+        """
+        if not sys.platform.startswith("win"):
+            return False
+
+        # Primary filter: Must have an active meeting window (Teams, Zoom, Webex, Meet, etc.)
+        # Background chat pings, Bluetooth device connections, or idle apps will return False.
+        return self._has_meeting_window()
 
     def _monitor_loop(self) -> None:
         while not self._stop_event.is_set():
