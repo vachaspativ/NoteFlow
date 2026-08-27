@@ -8,7 +8,7 @@ whisper_device: auto
 whisper_download_root: models
 allow_online_model_download: false
 chunk_duration_secs: 3
-vad_threshold: 0.5
+vad_threshold: 0.4
 enable_loopback: true
 auto_call_detection: true
 default_meeting_title_prefix: '[NoteFlow] Meeting'
