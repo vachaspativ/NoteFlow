@@ -347,10 +347,18 @@ class CallDetectorDaemon:
                     self._is_auto_session = False
                     try:
                         notes = self.controller.stop_session()
-                        print(
-                            "[NoteFlow Daemon] ✅ Recording stopped. Notes generation complete.",
-                            flush=True,
-                        )
+                        if notes.get("error") or (notes.get("summary") and ("failed" in notes.get("summary", "").lower() or "timed out" in notes.get("summary", "").lower())):
+                            err_msg = notes.get("error") or notes.get("summary")
+                            print(
+                                f"[NoteFlow Daemon] ⚠️ Recording stopped, but note generation encountered an issue: {err_msg}",
+                                flush=True,
+                            )
+                            logger.warning(f"Auto-session note generation issue: {err_msg}")
+                        else:
+                            print(
+                                "[NoteFlow Daemon] ✅ Recording stopped. Notes generation complete.",
+                                flush=True,
+                            )
                         # Cooldown if transcript was empty (avoids instant re-trigger)
                         if not (notes.get("transcript") or "").strip():
                             logger.info("Empty transcript — entering 15s cooldown.")

@@ -65,11 +65,19 @@ class LLMClient:
         return self.check_available()
             
     def _run_ollama_generate(self, prompt: str) -> str:
+        # Dynamically scale Ollama context window (num_ctx) based on prompt size + output allowance
+        estimated_prompt_tokens = int(len(prompt) / 2.5)
+        target_num_ctx = max(4096, min(32768, estimated_prompt_tokens + 2048))
+
         payload = {
             "model": self.model,
             "prompt": prompt,
             "stream": False,
-            "format": "json"
+            "format": "json",
+            "options": {
+                "num_ctx": target_num_ctx,
+                "temperature": 0.2,
+            }
         }
         attempts = 0
         last_error: Exception | None = None
@@ -205,7 +213,7 @@ class LLMClient:
             prompt = self._build_prompt(transcript, title, duration)
             try:
                 raw_text = self._run_ollama_generate(prompt)
-                # Try to parse the response as JSON
+                parsed_data = None
                 try:
                     parsed_data = json.loads(raw_text)
                 except json.JSONDecodeError:
@@ -214,8 +222,15 @@ class LLMClient:
                         try:
                             parsed_data = json.loads(json_match.group(1))
                         except json.JSONDecodeError:
-                            parsed_data = self._fallback_notes(raw_text)
-                    else:
+                            pass
+                    if parsed_data is None:
+                        brace_match = re.search(r'(\{[\s\S]*\})', raw_text)
+                        if brace_match:
+                            try:
+                                parsed_data = json.loads(brace_match.group(1))
+                            except json.JSONDecodeError:
+                                pass
+                    if parsed_data is None:
                         parsed_data = self._fallback_notes(raw_text)
 
                 return self._validate_notes(parsed_data)
@@ -358,9 +373,9 @@ Respond ONLY with the raw JSON object. Do not include any preamble, markdown wra
         meeting_title = title if title else "Untitled Meeting"
         meeting_duration = duration if duration else "Unknown"
         
-        max_len = 16000
+        max_len = 32000
         if len(transcript) > max_len:
-            processed_transcript = transcript[:8000] + "\n\n[... transcript middle section truncated for length to prevent LLM timeout ...]\n\n" + transcript[-7000:]
+            processed_transcript = transcript[:16000] + "\n\n[... transcript middle section truncated for length to prevent LLM timeout ...]\n\n" + transcript[-15000:]
         else:
             processed_transcript = transcript
         

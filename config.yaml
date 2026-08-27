@@ -28,7 +28,7 @@ smtp_password: xxxx_app_password_xxxx
 email_from: you@gmail.com
 email_to: recipient@example.com
 email_subject_prefix: '[NoteFlow]'
-enable_map_reduce: false
+enable_map_reduce: true
 # --- Auto call detection tuning ---
 # Enable network-based detection (UDP connections to Teams/Meet media relay IPs)
 daemon_network_check_enabled: true

@@ -117,10 +117,10 @@ def test_ollama_timeout_raises_descriptive_error(mocker, client):
         client.generate_notes("Transcript")
 
 def test_long_transcript_prompt_truncation(client):
-    long_transcript = "A" * 20000
+    long_transcript = "A" * 35000
     prompt = client._build_prompt(long_transcript, "Title", "Duration")
     assert "truncated for length" in prompt
-    assert len(prompt) < 20000
+    assert len(prompt) < 35000
 
 def test_generate_notes_retries_on_failure_then_succeeds(mocker):
     from noteflow.llm_client import LLMClient
