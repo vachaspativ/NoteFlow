@@ -73,11 +73,13 @@ def test_daemon_initial_state(mock_controller):
 
 def test_notify_session_started_and_stopped(mock_controller):
     daemon = _patched_daemon(mock_controller)
-    daemon.notify_session_started()
+    daemon.notify_session_started(is_auto=True)
     assert daemon.is_in_call
+    assert daemon._is_auto_session
 
     daemon.notify_session_stopped(manual=True)
     assert not daemon.is_in_call
+    assert not daemon._is_auto_session
     assert daemon._last_cooldown_until > time.time()
 
 

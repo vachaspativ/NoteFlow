@@ -161,7 +161,14 @@ class SessionController:
             except Exception as e:
                 logger.error(f"Error invoking segment callback: {e}")
 
-    def start_session(self, title: str, mode: TranscriptionMode, theme: Theme, device_id: int | None = None) -> SessionMetadata:
+    def start_session(
+        self,
+        title: str,
+        mode: TranscriptionMode,
+        theme: Theme,
+        device_id: int | None = None,
+        is_auto_started: bool = False,
+    ) -> SessionMetadata:
         """Starts a recording session."""
         self._session = SessionMetadata(title=title, mode=mode, theme=theme)
         self._transcript_store.reset()
@@ -192,7 +199,7 @@ class SessionController:
         logger.info(f"=== Transcription Session Started: '{title}' (Mode: {mode.value}) ===")
 
         if getattr(self, "_call_daemon", None):
-            self._call_daemon.notify_session_started()
+            self._call_daemon.notify_session_started(is_auto=is_auto_started)
             
         return self._session
 

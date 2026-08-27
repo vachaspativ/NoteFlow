@@ -77,6 +77,7 @@ class CallDetectorDaemon:
         self._thread: threading.Thread | None = None
         self._stop_event: threading.Event = threading.Event()
         self.is_in_call: bool = False
+        self._is_auto_session: bool = False
         self._active_streak: int = 0
         self._silence_streak: int = 0
         self._last_cooldown_until: float = 0.0
@@ -127,13 +128,19 @@ class CallDetectorDaemon:
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive() and not self._stop_event.is_set()
 
-    def notify_session_started(self) -> None:
+    def notify_session_started(self, is_auto: bool = False) -> None:
         """Called when a recording session starts (manual or auto)."""
-        self.is_in_call = True
+        self.is_in_call = is_auto  # Only daemon-initiated sessions participate in auto-termination
+        self._is_auto_session = is_auto
+        self._silence_streak = 0
+        self._active_streak = 0
 
     def notify_session_stopped(self, manual: bool = False) -> None:
         """Called when a recording session stops (manual or auto)."""
         self.is_in_call = False
+        self._is_auto_session = False
+        self._silence_streak = 0
+        self._active_streak = 0
         if manual:
             self._last_cooldown_until = time.time() + 30.0
         if self._log_watcher:
@@ -315,17 +322,21 @@ class CallDetectorDaemon:
                     logger.info("=== Auto-Detected Active Call ===")
                     logger.info(f"Starting session '{auto_title}'...")
                     self.is_in_call = True
+                    self._is_auto_session = True
                     try:
                         self.controller.start_session(
                             title=auto_title,
                             mode=self.controller.settings.transcription_mode,
                             theme=self.controller.settings.theme,
+                            is_auto_started=True,
                         )
                     except Exception as exc:
                         logger.error(f"Failed to auto-start session: {exc}")
+                        self.is_in_call = False
+                        self._is_auto_session = False
 
-                # Stop recording after 4 consecutive silent polls (~12 seconds)
-                elif not active and self.is_in_call and self._silence_streak >= 4:
+                # Stop recording ONLY if this was an auto-detected daemon session and all signals went inactive
+                elif not active and self.is_in_call and self._is_auto_session and self._silence_streak >= 4:
                     print(
                         "\n[NoteFlow Daemon] 🛑 Call ended — all signals inactive. "
                         "Stopping recording and generating notes...",
@@ -333,6 +344,7 @@ class CallDetectorDaemon:
                     )
                     logger.info("Auto-detected call end. Stopping session...")
                     self.is_in_call = False
+                    self._is_auto_session = False
                     try:
                         notes = self.controller.stop_session()
                         print(
