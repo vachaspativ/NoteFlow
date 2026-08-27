@@ -57,6 +57,11 @@ class UpdateSettingsRequest(BaseModel):
     email_to: str | None = None
     email_subject_prefix: str | None = None
     enable_map_reduce: bool | None = None
+    daemon_network_check_enabled: bool | None = None
+    daemon_log_watch_enabled: bool | None = None
+    daemon_window_check_enabled: bool | None = None
+    daemon_active_streak_required: int | None = None
+    daemon_min_udp_connections: int | None = None
 
 
 class ResendEmailRequest(BaseModel):
@@ -168,6 +173,11 @@ def create_app(controller: SessionController) -> FastAPI:
             "email_to": s.email_to,
             "email_subject_prefix": s.email_subject_prefix,
             "enable_map_reduce": getattr(s, "enable_map_reduce", False),
+            "daemon_network_check_enabled": getattr(s, "daemon_network_check_enabled", True),
+            "daemon_log_watch_enabled": getattr(s, "daemon_log_watch_enabled", True),
+            "daemon_window_check_enabled": getattr(s, "daemon_window_check_enabled", True),
+            "daemon_active_streak_required": getattr(s, "daemon_active_streak_required", 2),
+            "daemon_min_udp_connections": getattr(s, "daemon_min_udp_connections", 2),
             "web_port": s.web_port,
         }
 
@@ -219,6 +229,16 @@ def create_app(controller: SessionController) -> FastAPI:
             s.smtp_password = req.smtp_password
         if req.enable_map_reduce is not None:
             s.save_enable_map_reduce(req.enable_map_reduce)
+        if req.daemon_network_check_enabled is not None:
+            s.save_daemon_network_check_enabled(req.daemon_network_check_enabled)
+        if req.daemon_log_watch_enabled is not None:
+            s.save_daemon_log_watch_enabled(req.daemon_log_watch_enabled)
+        if req.daemon_window_check_enabled is not None:
+            s.save_daemon_window_check_enabled(req.daemon_window_check_enabled)
+        if req.daemon_active_streak_required is not None:
+            s.save_daemon_active_streak_required(req.daemon_active_streak_required)
+        if req.daemon_min_udp_connections is not None:
+            s.save_daemon_min_udp_connections(req.daemon_min_udp_connections)
 
         controller.sync_daemon_state()
         return {"success": True, "settings": get_settings()}

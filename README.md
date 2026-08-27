@@ -225,3 +225,58 @@ Run the automated test suite covering audio capture, Whisper STT, LLM synthesis,
 ```bash
 pytest tests/
 ```
+
+---
+
+## 🤖 Auto Call Detection (Daemon Mode)
+
+Start NoteFlow in background daemon mode and it will automatically detect when you join a meeting and stop when you leave:
+
+```bash
+noteflow --daemon
+```
+
+### How Detection Works — Three-Layer Waterfall
+
+NoteFlow uses a **ranked signal waterfall**. A call is confirmed only when at least one layer fires for two consecutive polls (~6 seconds). Each layer is independently togglable in `config.yaml`.
+
+| Layer | Signal | Platform | Latency | Notes |
+|---|---|---|---|---|
+| **1 — Teams Log Watcher** | Tails `MSTeamsNM_SlimCore_*.log` / classic `logs.txt` | Windows only | <1s | Highest confidence; immediate trigger |
+| **2 — Network Activity** | UDP connections to Teams/Google media relay IPs | Windows + macOS | 2–4s | Primary cross-platform gate |
+| **3 — Window Title** | Process-scoped meeting window enumeration | Windows | 3–6s | Fallback; immune to non-Teams apps |
+
+### Configuration
+
+```yaml
+# config.yaml — Auto call detection tuning
+daemon_network_check_enabled: true   # Layer 2: network UDP monitoring
+daemon_log_watch_enabled: true       # Layer 1: Teams log watcher (Windows only)
+daemon_window_check_enabled: true    # Layer 3: window title check (Windows fallback)
+daemon_active_streak_required: 2     # Consecutive polls before starting (default: 2 = ~6s)
+daemon_min_udp_connections: 2        # Min simultaneous UDP relay connections (Layer 2)
+```
+
+### Supported Applications
+
+| App | Detection Method |
+|---|---|
+| Microsoft Teams (new) | Log watcher + Network + Window |
+| Microsoft Teams (classic) | Log watcher + Network + Window |
+| Zoom | Network + Window |
+| Webex | Network + Window |
+| Google Meet (Chrome) | Network (UDP to Google IPs) |
+| Slack Huddles | Window |
+| Discord Voice | Window |
+
+### VPN & Corporate Network Notes
+
+- **Direct internet (no VPN)**: Layer 2 matches Microsoft's media relay CIDRs (`13.107.64.0/18`, `52.112.0.0/14`, `52.122.0.0/15`) and Google's ranges.
+- **Corporate VPN / TURN relay**: If media is tunnelled through a corporate VPN gateway (common in VDI/HVD environments), the remote IP seen by `psutil` is the VPN relay, not Microsoft's. In this case, Layer 2 automatically falls back to **STUN/TURN port matching** (UDP ports `3478–3481`), which is reliable even behind VPN.
+- **VDI/HVD thin clients**: Layer 1 (Teams log watcher) remains the most reliable detection path in these scenarios since log files are written locally.
+
+### Known Limitations
+
+- **Microsoft Edge (`msedge.exe`) for Google Meet**: Edge is NOT currently monitored for network-based Meet detection. If you use Microsoft Edge for Google Meet, use Layer 3 (window title check) which will detect the active Meet tab title. Full Edge support is planned for a future release.
+- **macOS**: Layer 1 (Teams log) and Layer 3 (window check) are Windows-only. Layer 2 (network monitor) works on macOS. Full macOS window enumeration support via `pyobjc-framework-Quartz` is planned.
+- **Headless / screen-sharing-only calls**: If a meeting is joined without audio (muted and no camera), Layer 2 may not detect it. Use Layer 1 (log watcher) or enable Layer 3 as a fallback.

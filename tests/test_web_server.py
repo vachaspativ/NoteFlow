@@ -86,10 +86,20 @@ def test_api_settings(client, mock_controller):
 
 
 def test_api_update_settings(client, mock_controller):
-    response = client.post("/api/settings", json={"theme": "light", "whisper_model": "small.en"})
+    response = client.post("/api/settings", json={
+        "theme": "light",
+        "whisper_model": "small.en",
+        "daemon_network_check_enabled": True,
+        "daemon_log_watch_enabled": True,
+        "daemon_window_check_enabled": True,
+        "daemon_active_streak_required": 3,
+        "daemon_min_udp_connections": 4,
+    })
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
+    assert data["settings"]["daemon_active_streak_required"] == 3
+    assert data["settings"]["daemon_min_udp_connections"] == 4
 
 
 def test_api_devices(client):

@@ -74,6 +74,7 @@ def test_thread_safety_lock_acquired(mocker):
 def test_auto_device_selection(mocker):
     mocker.patch('noteflow.transcription.HAS_FASTER_WHISPER', True)
     mock_model = mocker.patch('noteflow.transcription.WhisperModel')
+    mock_model.return_value.transcribe.return_value = ([], mocker.Mock())
     
     # Test CPU fallback
     mocker.patch('noteflow.transcription._detect_device', return_value='cpu')

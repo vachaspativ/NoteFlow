@@ -61,6 +61,12 @@ class Settings:
     dry_run: bool = False
     device_id: int | None = None
     enable_map_reduce: bool = False
+    # --- Auto call detection tuning ---
+    daemon_network_check_enabled: bool = True
+    daemon_log_watch_enabled: bool = True
+    daemon_window_check_enabled: bool = True
+    daemon_active_streak_required: int = 2   # consecutive polls before starting recording
+    daemon_min_udp_connections: int = 2      # min simultaneous qualifying UDP conns
 
     _env_path: str | Path | None = None
 
@@ -137,6 +143,16 @@ class Settings:
         enable_email = data.get("enable_email") if data.get("enable_email") is not None else (os.getenv("ENABLE_EMAIL", "true").lower() in ("true", "1", "yes"))
         enable_map_reduce = data.get("enable_map_reduce") if data.get("enable_map_reduce") is not None else (os.getenv("ENABLE_MAP_REDUCE", "false").lower() in ("true", "1", "yes"))
 
+        def _bool(key: str, default: str) -> bool:
+            v = data.get(key)
+            return (v if v is not None else os.getenv(key.upper(), default).lower() in ("true", "1", "yes"))
+
+        daemon_network_check_enabled = _bool("daemon_network_check_enabled", "true")
+        daemon_log_watch_enabled = _bool("daemon_log_watch_enabled", "true")
+        daemon_window_check_enabled = _bool("daemon_window_check_enabled", "true")
+        daemon_active_streak_required = int(data.get("daemon_active_streak_required") or os.getenv("DAEMON_ACTIVE_STREAK_REQUIRED", "2"))
+        daemon_min_udp_connections = int(data.get("daemon_min_udp_connections") or os.getenv("DAEMON_MIN_UDP_CONNECTIONS", "2"))
+
         return cls(
             theme=theme,
             transcription_mode=transcription_mode,
@@ -168,6 +184,11 @@ class Settings:
             web_host=web_host,
             web_port=web_port,
             enable_map_reduce=enable_map_reduce,
+            daemon_network_check_enabled=daemon_network_check_enabled,
+            daemon_log_watch_enabled=daemon_log_watch_enabled,
+            daemon_window_check_enabled=daemon_window_check_enabled,
+            daemon_active_streak_required=daemon_active_streak_required,
+            daemon_min_udp_connections=daemon_min_udp_connections,
             _env_path=env_path
         )
 
@@ -229,6 +250,11 @@ class Settings:
         data["allow_online_model_download"] = self.allow_online_model_download
         data["enable_email"] = self.enable_email
         data["enable_map_reduce"] = self.enable_map_reduce
+        data["daemon_network_check_enabled"] = self.daemon_network_check_enabled
+        data["daemon_log_watch_enabled"] = self.daemon_log_watch_enabled
+        data["daemon_window_check_enabled"] = self.daemon_window_check_enabled
+        data["daemon_active_streak_required"] = self.daemon_active_streak_required
+        data["daemon_min_udp_connections"] = self.daemon_min_udp_connections
         data["ollama_host"] = self.ollama_host
         data["ollama_port"] = self.ollama_port
         data["ollama_model"] = self.ollama_model
@@ -294,4 +320,24 @@ class Settings:
 
     def save_enable_map_reduce(self, enable: bool) -> None:
         self.enable_map_reduce = enable
+        self._save_to_yaml()
+
+    def save_daemon_network_check_enabled(self, enable: bool) -> None:
+        self.daemon_network_check_enabled = enable
+        self._save_to_yaml()
+
+    def save_daemon_log_watch_enabled(self, enable: bool) -> None:
+        self.daemon_log_watch_enabled = enable
+        self._save_to_yaml()
+
+    def save_daemon_window_check_enabled(self, enable: bool) -> None:
+        self.daemon_window_check_enabled = enable
+        self._save_to_yaml()
+
+    def save_daemon_active_streak_required(self, streak: int) -> None:
+        self.daemon_active_streak_required = streak
+        self._save_to_yaml()
+
+    def save_daemon_min_udp_connections(self, min_udp: int) -> None:
+        self.daemon_min_udp_connections = min_udp
         self._save_to_yaml()

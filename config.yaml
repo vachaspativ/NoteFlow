@@ -29,3 +29,14 @@ email_from: you@gmail.com
 email_to: recipient@example.com
 email_subject_prefix: '[NoteFlow]'
 enable_map_reduce: false
+# --- Auto call detection tuning ---
+# Enable network-based detection (UDP connections to Teams/Meet media relay IPs)
+daemon_network_check_enabled: true
+# Enable Teams log file watcher (Windows only, new & classic Teams)
+daemon_log_watch_enabled: true
+# Enable process-scoped window title check (fallback)
+daemon_window_check_enabled: true
+# Number of consecutive polls needed to confirm call start (default: 2 = ~6 seconds)
+daemon_active_streak_required: 2
+# Minimum simultaneous qualifying UDP connections to declare call active
+daemon_min_udp_connections: 2

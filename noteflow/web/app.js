@@ -128,6 +128,11 @@
       emailTo: document.getElementById('cfg-email-to'),
       enableEmail: document.getElementById('cfg-enable-email'),
       enableMapReduce: document.getElementById('cfg-enable-map-reduce'),
+      daemonNetworkCheck: document.getElementById('cfg-daemon-network-check'),
+      daemonLogWatch: document.getElementById('cfg-daemon-log-watch'),
+      daemonWindowCheck: document.getElementById('cfg-daemon-window-check'),
+      daemonActiveStreak: document.getElementById('cfg-daemon-active-streak'),
+      daemonMinUdp: document.getElementById('cfg-daemon-min-udp'),
     },
     toastContainer: document.getElementById('toast-container'),
   };
@@ -285,6 +290,11 @@
         els.settingsModal.emailTo.value = state.settings.email_to;
         if (els.settingsModal.enableEmail) els.settingsModal.enableEmail.checked = state.settings.enable_email ?? true;
         if (els.settingsModal.enableMapReduce) els.settingsModal.enableMapReduce.checked = state.settings.enable_map_reduce ?? false;
+        if (els.settingsModal.daemonNetworkCheck) els.settingsModal.daemonNetworkCheck.checked = state.settings.daemon_network_check_enabled ?? true;
+        if (els.settingsModal.daemonLogWatch) els.settingsModal.daemonLogWatch.checked = state.settings.daemon_log_watch_enabled ?? true;
+        if (els.settingsModal.daemonWindowCheck) els.settingsModal.daemonWindowCheck.checked = state.settings.daemon_window_check_enabled ?? true;
+        if (els.settingsModal.daemonActiveStreak) els.settingsModal.daemonActiveStreak.value = state.settings.daemon_active_streak_required ?? 2;
+        if (els.settingsModal.daemonMinUdp) els.settingsModal.daemonMinUdp.value = state.settings.daemon_min_udp_connections ?? 2;
       }
     } catch (e) {
       console.error('Error loading settings:', e);
@@ -831,6 +841,11 @@
       email_to: els.settingsModal.emailTo.value,
       enable_email: els.settingsModal.enableEmail ? els.settingsModal.enableEmail.checked : true,
       enable_map_reduce: els.settingsModal.enableMapReduce ? els.settingsModal.enableMapReduce.checked : false,
+      daemon_network_check_enabled: els.settingsModal.daemonNetworkCheck ? els.settingsModal.daemonNetworkCheck.checked : true,
+      daemon_log_watch_enabled: els.settingsModal.daemonLogWatch ? els.settingsModal.daemonLogWatch.checked : true,
+      daemon_window_check_enabled: els.settingsModal.daemonWindowCheck ? els.settingsModal.daemonWindowCheck.checked : true,
+      daemon_active_streak_required: parseInt(els.settingsModal.daemonActiveStreak ? els.settingsModal.daemonActiveStreak.value : '2', 10) || 2,
+      daemon_min_udp_connections: parseInt(els.settingsModal.daemonMinUdp ? els.settingsModal.daemonMinUdp.value : '2', 10) || 2,
     };
 
     try {

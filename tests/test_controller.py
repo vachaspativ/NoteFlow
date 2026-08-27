@@ -92,15 +92,15 @@ def test_stop_session_calls_mark_stopped(mock_whisper, mock_audio, controller):
 @patch("noteflow.controller.AudioCapture")
 @patch("noteflow.controller.WhisperTranscriber")
 def test_stop_session_live_gets_transcript(mock_whisper, mock_audio, controller):
-    controller.start_session("Title", TranscriptionMode.LIVE, Theme.DARK)
-    controller._generate_and_send = Mock(return_value={})
-    
-    mock_thread = Mock()
-    controller._processing_thread = mock_thread
-    
-    controller.stop_session()
-    
-    mock_thread.join.assert_called_once()
+    with patch("threading.Thread") as mock_thread_cls:
+        mock_thread = Mock()
+        mock_thread_cls.return_value = mock_thread
+        controller.start_session("Title", TranscriptionMode.LIVE, Theme.DARK)
+        controller._generate_and_send = Mock(return_value={})
+        
+        controller.stop_session()
+        
+        mock_thread.join.assert_called_once()
 
 
 @patch("noteflow.controller.AudioCapture")
@@ -216,7 +216,7 @@ def test_email_failure_still_saves_locally(mock_audio, controller):
 
 @patch("noteflow.controller.AudioCapture")
 def test_regenerate_notes_calls_llm(mock_audio, controller):
-    controller.start_session("Title", TranscriptionMode.LIVE, Theme.DARK)
+    controller.start_session("Title", TranscriptionMode.BATCH, Theme.DARK)
     controller._transcript_store.append("Recorded transcript segment")
     
     mock_llm = Mock()
